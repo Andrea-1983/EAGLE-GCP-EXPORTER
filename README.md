@@ -1,3 +1,6 @@
+----------------------------------------------
+🇮🇹 Versione Italiana
+----------------------------------------------
 🦅 Eagle GCP Exporter (v2.0)
 
 Eagle GCP Exporter è una suite web-based client-side (offline e 100% privata) per l'elaborazione di rilievi laser scanner SLAM. Gestisce l'estrazione dei GCP, la bonifica dei dati, l'allineamento 3D, l'export CAD e la documentazione fotografica delle stazioni.
@@ -18,7 +21,10 @@ Eagle GCP Exporter è una suite web-based client-side (offline e 100% privata) p
 🚀 Utilizzo
 
 Scarica il file Eagle-GCP-Exporter_v_2.0.html ed aprilo in qualsiasi browser web. Nessuna installazione o server richiesto.
+
+----------------------------------------------
 🇬🇧 English Version
+----------------------------------------------
 🦅 Eagle GCP Exporter (v2.0)
 
 Eagle GCP Exporter is a 100% private, offline, client-side web suite designed to process SLAM laser scanner surveys. It automates GCP extraction, data deduplication, 3D alignment, CAD export, and station photographic documentation.
