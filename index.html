@@ -1,0 +1,2903 @@
+<!--
+  ==============================================================================
+  Eagle GCP Exporter v2.0 (Station Photo Gallery)
+  
+  Copyright (c) 2026 Andrea Ceolin. Tutti i diritti riservati.
+  Tutti i diritti di proprietà intellettuale e copyright su questo software 
+  e sui relativi contenuti sono riservati ed esclusivi di Andrea Ceolin.
+  ==============================================================================
+-->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eagle GCP Exporter v2.0</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --card-inner: #1f2937;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: #374151;
+            --border-light: #4b5563;
+            --success: #10b981;
+            --accent: #1e3a8a;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --purple: #a855f7;
+            --cyan: #06b6d4;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1650px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+        }
+
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 15px; }
+        .header-top h1 { margin: 0; color: #f9fafb; font-size: 1.6rem; letter-spacing: -0.5px; }
+        .project-actions { display: flex; gap: 10px; }
+
+        .btn-project {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            background: var(--card-inner);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-project:hover { background-color: #374151; border-color: #6b7280; }
+        p.description { color: var(--text-muted); font-size: 0.88rem; margin-top: 0; margin-bottom: 15px; line-height: 1.4; }
+
+        /* VISUALIZZATORE VETTORIALE UNIFICATO */
+        .viewer-container {
+            background-color: #030712;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .viewer-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .viewer-layers {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #111827;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .layer-toggle input { accent-color: var(--primary); cursor: pointer; }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 340px;
+            background-color: #020617;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+        canvas#previewCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+        canvas#previewCanvas:active { cursor: grabbing; }
+
+        .canvas-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 6px;
+            z-index: 5;
+        }
+        .btn-canvas {
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid var(--border-light);
+            color: var(--text);
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+        .btn-canvas:hover { background: var(--primary); border-color: var(--primary); }
+
+        /* TAB NAVIGATION */
+        .tab-nav { display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+        .tab-btn {
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .option-card { background-color: #172554; border: 1px solid #1e40af; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .option-header { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.92rem; font-weight: 600; color: #93c5fd; }
+        .option-header input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--primary); }
+
+        .section-block { background-color: var(--card-inner); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border); }
+
+        .folder-card {
+            border: 2px dashed var(--primary);
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            background-color: rgba(30, 58, 138, 0.2);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .folder-card.dragover { background-color: rgba(30, 58, 138, 0.4); border-color: #60a5fa; transform: scale(1.005); }
+        .folder-card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #93c5fd; }
+        .folder-card input[type="file"] { display: none; }
+
+        .folder-status-box { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.82rem; }
+        .status-badge { padding: 8px; border-radius: 6px; background: var(--card-inner); border: 1px solid var(--border); color: var(--text-muted); font-weight: 600; text-align: center; }
+        .status-badge.loaded { border-color: var(--success); color: #4ade80; background: rgba(22, 101, 52, 0.3); }
+
+        .grid-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .param-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #d1d5db; margin-bottom: 4px; }
+        .param-group input, .param-group select { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; box-sizing: border-box; background: #111827; color: var(--text); }
+        .param-group input:focus, .param-group select:focus { border-color: var(--primary); outline: none; }
+
+        .btn-process { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; margin-bottom: 5px; }
+        .btn-process:hover { background-color: var(--primary-hover); }
+        .btn-process:disabled { background-color: #374151; color: #6b7280; cursor: not-allowed; }
+
+        .btn-download { padding: 12px 18px; background-color: var(--success); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.92rem; text-align: center; }
+        .btn-download:hover { opacity: 0.9; }
+
+        .resizable-table-container { max-height: 280px; min-height: 120px; overflow-y: auto; resize: vertical; border: 1px solid var(--border); border-radius: 8px; background: #111827; }
+        .table-container { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: #111827; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left; }
+        th { background-color: #1f2937; padding: 8px 10px; font-weight: 600; color: #d1d5db; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        td { padding: 6px 10px; border-bottom: 1px solid #1f2937; white-space: nowrap; color: #e5e7eb; }
+        tr:nth-child(even) { background-color: #111827; }
+        tr:nth-child(odd) { background-color: #0f172a; }
+
+        .badge { padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; display: inline-block; }
+        .badge-green { background: rgba(22, 101, 52, 0.4); color: #4ade80; border: 1px solid #16a34a; }
+        .badge-yellow { background: rgba(146, 64, 14, 0.4); color: #fde047; border: 1px solid #d97706; }
+        .badge-red { background: rgba(153, 27, 27, 0.4); color: #fca5a5; border: 1px solid #dc2626; }
+        .badge-station { background: rgba(30, 58, 138, 0.6); color: #93c5fd; border: 1px solid #2563eb; font-weight: 700; }
+
+        .editable-input { padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.82rem; width: 100%; box-sizing: border-box; background: #090d16; color: var(--text); }
+
+        .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 1024px) { .split-layout { grid-template-columns: 1fr; } }
+
+        .tool-box { background-color: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; opacity: 1; transition: all 0.2s; }
+        .tool-box.disabled-box { opacity: 0.4; background-color: #111827; }
+        .tool-box.disabled-box div, .tool-box.disabled-box textarea, .tool-box.disabled-box button, .tool-box.disabled-box select, .tool-box.disabled-box input { pointer-events: none; }
+        .tool-box h4 { margin: 0 0 10px 0; font-size: 0.92rem; color: #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+
+        pre.matrix-box { background: #030712; color: #38bdf8; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.78rem; overflow-x: auto; margin: 8px 0; border: 1px solid var(--border); }
+        textarea.matrix-textarea { width: 100%; height: 75px; font-family: monospace; font-size: 0.80rem; padding: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; resize: vertical; background: #030712; color: #38bdf8; }
+
+        footer {
+            margin-top: auto;
+            padding: 20px 0 10px 0;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .pcd-status { font-size: 0.78rem; color: var(--text-muted); margin: 8px 2px 0; }
+        .pcd-status.busy { color: #93c5fd; } .pcd-status.ok { color: #4ade80; } .pcd-status.err { color: #fca5a5; } .pcd-status.warn { color: #fde047; }
+        /* SCHEDA 4 - coerenza con le altre schede */
+        .layer-toggle input[type="number"] { background: #111827; color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; }
+        .status-badge.left { text-align: left; }
+        .status-badge.warn { border-color: var(--warning); color: #fde047; background: rgba(146, 64, 14, 0.3); }
+        .tab-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        #tabVirtualTour .section-block h3 { color: var(--text); }
+        #tabVirtualTour .section-block:first-child h3 { color: var(--cyan); }
+
+        /* GALLERY FULLSCREEN - scheda 4 */
+        #stationGalleryOverlay{position:fixed;inset:0;z-index:99999;background:#05070c;color:#fff;display:none;flex-direction:column;}
+        #stationGalleryOverlay.active{display:flex;}
+        .gallery-topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(10,15,25,.96);border-bottom:1px solid #263244;gap:12px;}
+        .gallery-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 330px;}
+        .gallery-photo-stage{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#020408;touch-action:none;}
+        .gallery-photo-stage.zoomed{cursor:grab;}
+        .gallery-photo-stage.panning{cursor:grabbing;}
+        .gallery-zoombadge{position:absolute;left:14px;bottom:12px;z-index:2;pointer-events:none;background:rgba(10,15,25,.82);border:1px solid #334155;border-radius:6px;padding:4px 9px;font-size:12px;color:#cbd5e1;}
+        .gallery-track{position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;will-change:transform;transition:transform .55s cubic-bezier(.22,.61,.36,1);}
+        .gallery-slide{flex:0 0 auto;position:relative;opacity:.42;filter:brightness(.7);transition:opacity .55s ease,filter .55s ease;cursor:pointer;}
+        .gallery-slide.active{opacity:1;filter:none;cursor:default;z-index:3;}
+        .gallery-slide img{width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;will-change:transform;}
+        .gallery-arrow{position:absolute;top:50%;transform:translateY(-50%);width:54px;height:74px;border:0;border-radius:12px;background:rgba(10,15,25,.68);color:#fff;font-size:38px;cursor:pointer;z-index:2;}
+        .gallery-arrow:hover{background:rgba(37,99,235,.85)}
+        .gallery-arrow.left{left:18px}.gallery-arrow.right{right:18px}
+        .gallery-side{background:#0d1420;border-left:1px solid #263244;padding:12px;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden;}
+        .gallery-mapbox{display:flex;flex-direction:column;gap:8px;flex:0 0 auto;}
+        .gallery-thumbbox{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1;}
+        #galleryTrackMap{width:100%;height:230px;display:block;background:#080d15;border:1px solid #334155;border-radius:8px;cursor:grab;touch-action:none;}
+        #galleryTrackMap.panning{cursor:grabbing;}
+        .gallery-side-title{font-weight:700;font-size:14px;}
+        .gallery-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#cbd5e1;}
+        .gallery-legend .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;}
+        .gallery-legend .dot.y{background:#facc15;}
+        .gallery-legend .dot.r{background:#ef4444;}
+        .gallery-stnav{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+        .gallery-stnav .gallery-navbtn{padding:9px 6px;font-size:12px;}
+        .gallery-hint{font-size:11px;color:#94a3b8;}
+        .gallery-thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;overflow:auto;}
+        .gallery-thumb{border:2px solid transparent;border-radius:6px;padding:0;background:#111827;cursor:pointer;overflow:hidden;}
+        .gallery-thumb.active{border-color:#38bdf8}.gallery-thumb img{width:100%;height:76px;object-fit:cover;display:block;}
+        .gallery-bottombar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;background:#0a0f19;border-top:1px solid #263244;}
+        .gallery-navbtn{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:7px;padding:10px 16px;font-weight:650;cursor:pointer;}
+        .gallery-navbtn:disabled{opacity:.35;cursor:not-allowed}.gallery-navbtn.primary{background:#1d4ed8;border-color:#2563eb;}
+        @media(max-width:760px){
+            .gallery-main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 270px}
+            .gallery-side{border-left:0;border-top:1px solid #263244;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+            .gallery-thumbbox{overflow:hidden}
+            #galleryTrackMap{height:120px}
+            .gallery-thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-thumb img{height:60px}
+            .gallery-stnav{grid-template-columns:1fr}
+            .gallery-arrow{width:42px;height:60px;font-size:30px}
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-top">
+        <h1>Eagle GCP Exporter v2.0</h1>
+        <div class="project-actions">
+            <button class="btn-project" onclick="saveProjectFile()">💾 Salva Progetto (.json)</button>
+            <button class="btn-project" onclick="document.getElementById('projectFileInput').click()">📂 Carica Progetto</button>
+            <input type="file" id="projectFileInput" accept=".json" style="display:none;" onchange="loadProjectFile(event)">
+        </div>
+    </div>
+
+    <p class="description">
+        Suite per estrazione GCP, bonifica duplicati, allineamento geometrico (Livellamento/Target) ed Elaborazione CAD Field-to-Finish.
+    </p>
+
+    <!-- VISUALIZZATORE PERCORSO & GCP UNIFICATO -->
+    <div class="viewer-container">
+        <div class="viewer-header">
+            <div class="viewer-title">
+                <span>🗺️ Visualizzatore Vettoriale Traiettoria & GCP</span>
+                <span id="canvasCoordsDisplay" style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; margin-left:10px;">X: -- | Y: --</span>
+            </div>
+            <div class="viewer-layers">
+                <label class="layer-toggle"><input type="checkbox" id="layerTrj" checked onchange="drawPreviewCanvas()"> 🛤️ TRJ Scansione</label>
+                <label class="layer-toggle"><input type="checkbox" id="layerRawGcp" checked onchange="drawPreviewCanvas()"> 🔴 GCP Grezzi (Sch. 1)</label>
+                <label class="layer-toggle"><input type="checkbox" id="layerElabGcp" checked onchange="drawPreviewCanvas()"> 🟢 GCP Elaborati (Sch. 2)</label>
+                <label class="layer-toggle"><input type="checkbox" id="layerCad" checked onchange="drawPreviewCanvas()"> 📐 Feature CAD (Sch. 3)</label>
+                <label class="layer-toggle"><input type="checkbox" id="layerTarget" checked onchange="drawPreviewCanvas()"> 🎯 Target CSV</label>
+                <label class="layer-toggle"><input type="checkbox" id="layerPcd" disabled onchange="onPcdToggle()"> ☁️ Nuvola PCD (ridotta)</label>
+            </div>
+        </div>
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="previewCanvas"></canvas>
+            <div class="canvas-controls">
+                <button class="btn-canvas" onclick="resetCanvasView()">🎯 Zoom Estensione</button>
+            </div>
+        </div>
+        <div id="pcdStatus" class="pcd-status" style="display:none;"></div>
+    </div>
+
+    <!-- NAVIGAZIONE TAB -->
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab('tabGcp', event)">1. Estrazione GCP Grezzi</button>
+        <button class="tab-btn" onclick="openTab('tabElabPura', event)">2. Elaborazione & Allineamento GCP</button>
+        <button class="tab-btn" onclick="openTab('tabGcpAnalysis', event)">3. Classificazione e Export CAD</button>
+        <button class="tab-btn" onclick="openTab('tabVirtualTour', event)">4. Gallery fotografica</button>
+    </div>
+
+    <!-- TAB 1: ESTRAZIONE GCP GREZZI -->
+    <div id="tabGcp" class="tab-content active">
+        <div class="folder-card" id="dropZone" onclick="document.getElementById('folderInput').click()">
+            <h3>📁 Seleziona o Trascina qui la Cartella della Scansione</h3>
+            <span style="font-size:0.85rem; color:var(--primary); font-weight:600;">Scegli Cartella Progetto (Contenente TRJ e ControlPoint)</span>
+            <input type="file" id="folderInput" webkitdirectory directory multiple>
+            
+            <div class="folder-status-box">
+                <div id="statusTrj" class="status-badge">📊 Traiettoria: Assente</div>
+                <div id="statusGcp" class="status-badge">📊 Control Points: Assenti</div>
+                <div id="statusCalib" class="status-badge">📊 Calibrazione: Default</div>
+            </div>
+        </div>
+
+        <div class="section-block">
+            <h4 style="margin: 0 0 12px 0; font-size: 0.88rem; text-transform: uppercase;">⏱️ Parametri Registrazione Sosta GCP</h4>
+            <div class="grid-params">
+                <div class="param-group">
+                    <label for="searchWindow">Finestra Sosta (sec)</label>
+                    <input type="number" id="searchWindow" value="3.0" step="0.5">
+                </div>
+                <div class="param-group">
+                    <label for="staticThresh">Tolleranza Sosta (m)</label>
+                    <input type="number" id="staticThresh" value="0.04" step="0.005">
+                </div>
+            </div>
+        </div>
+
+        <button id="processBtn" class="btn-process" disabled onclick="processTab1()">⚡ Estrai GCP Grezzi ➔ Passa alla Scheda 2</button>
+
+        <div id="resultsSection" style="display:none; margin-top: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="font-size: 1.1rem; margin:0;">Coordinate GCP Grezze Estratte</h2>
+            </div>
+            <div class="table-container" style="max-height: 300px;">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>GCP ID</th>
+                            <th>X (m)</th>
+                            <th>Y (m)</th>
+                            <th>Z Quota (m)</th>
+                            <th>Stato Sosta</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: ELABORAZIONE & ALLINEAMENTO UNIFICATA -->
+    <div id="tabElabPura" class="tab-content">
+        
+        <!-- BOX SUPERIORE DUPLICATI -->
+        <div class="option-card">
+            <label class="option-header">
+                <input type="checkbox" id="enableDeduplication" checked onchange="updateProcessingAndTables()">
+                <span>🧹 Filtro e Bonifica GCP Duplicati / Registrazioni Multiple</span>
+            </label>
+            <div class="option-body" style="margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
+                <div class="grid-params" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="param-group">
+                        <label for="dedupDistanceThresh">Tolleranza Distanza 3D (m)</label>
+                        <input type="number" id="dedupDistanceThresh" value="0.10" step="0.01" oninput="updateProcessingAndTables()">
+                    </div>
+                    <div class="param-group">
+                        <label for="dedupTimeThresh">Soglia Intervallo Temporale (sec)</label>
+                        <input type="number" id="dedupTimeThresh" value="60" step="5" oninput="updateProcessingAndTables()">
+                    </div>
+                    <div class="param-group">
+                        <label for="dedupMode">Gestione Punti Duplicati</label>
+                        <select id="dedupMode" onchange="updateProcessingAndTables()">
+                            <option value="AVERAGE">Fondi e Media Coordinate</option>
+                            <option value="FIRST">Mantieni Solo il Primo</option>
+                            <option value="LAST">Mantieni Solo l'Ultimo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <span style="font-weight:700; font-size:0.82rem; color:#93c5fd;">🔍 Audit GCP Grezzi vs. Accorpamenti (Ridimensionabile)</span>
+                        <span id="dedupBadgeSummary" class="badge badge-green">0 Punti Duplicati</span>
+                    </div>
+                    <div class="resizable-table-container">
+                        <table id="dedupAuditTable">
+                            <thead>
+                                <tr>
+                                    <th>GCP Grezzo</th>
+                                    <th>X Grezzo (m)</th>
+                                    <th>Y Grezzo (m)</th>
+                                    <th>Z Grezzo (m)</th>
+                                    <th>Stato Rilevato</th>
+                                    <th>Azione / Accorpamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nessun dato GCP caricato. Estrai i punti dalla Scheda 1.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPLIT-SCREEN: 50% OPERAZIONI / 50% TABELLA GCP -->
+        <div class="split-layout">
+            
+            <!-- LATO SINISTRO: SETTAGGI E OPERAZIONI -->
+            <div>
+                
+                <!-- REGOLE RINOMINAZIONE & OFFSET -->
+                <div class="tool-box" style="border-left: 4px solid var(--primary);">
+                    <h4>🏷️ Rinominazione & Offset Geometrici</h4>
+                    <div class="grid-params" style="grid-template-columns: 1fr 1fr;">
+                        <div class="param-group">
+                            <label for="renameStrategy">Logica Numerazione Punti</label>
+                            <select id="renameStrategy" onchange="updateProcessingAndTables()">
+                                <option value="CONTINUOUS">Sequenza Continua (es. GCP-0, GCP-1...)</option>
+                                <option value="STATION_NUMERIC">Reset Numerico da Stazione (es. 1001, 1002...)</option>
+                                <option value="STATION_PREFIX">Prefisso Stazione (es. 1000_001, 1000_002...)</option>
+                            </select>
+                        </div>
+                        <div class="param-group">
+                            <label for="gcpPrefix">Prefisso GCP Standard</label>
+                            <input type="text" id="gcpPrefix" value="GCP-" oninput="updateProcessingAndTables()">
+                        </div>
+                        <div class="param-group">
+                            <label for="startNum">Numero di Partenza</label>
+                            <input type="number" id="startNum" value="0" step="1" oninput="updateProcessingAndTables()">
+                        </div>
+                        <div class="param-group">
+                            <label for="stationDefaultPrefix">Stazione Iniziale Default</label>
+                            <input type="text" id="stationDefaultPrefix" value="1000" oninput="updateProcessingAndTables()">
+                        </div>
+                    </div>
+                    <div class="grid-params" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 8px;">
+                        <div class="param-group">
+                            <label for="zCorrHeight">Asta Z (m)</label>
+                            <input type="number" id="zCorrHeight" value="0.240" step="0.001" oninput="updateProcessingAndTables()">
+                        </div>
+                        <div class="param-group">
+                            <label for="xOffsetPura">Offset X (m)</label>
+                            <input type="number" id="xOffsetPura" value="0.000" step="0.001" oninput="updateProcessingAndTables()">
+                        </div>
+                        <div class="param-group">
+                            <label for="yOffsetPura">Offset Y (m)</label>
+                            <input type="number" id="yOffsetPura" value="0.000" step="0.001" oninput="updateProcessingAndTables()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOX 1: LIVELLAMENTO SU 3/4 GCP -->
+                <div class="tool-box disabled-box" id="box1Container" style="border-left: 4px solid var(--success);">
+                    <h4>
+                        <span>📐 1. Livellamento 3D su Piano</span>
+                        <label style="font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="enableBox1" onchange="toggleBoxState(1)"> Abilita</label>
+                    </h4>
+                    <div id="box1Content">
+                        <div class="grid-params" style="grid-template-columns: 1fr 1fr;">
+                            <div class="param-group"><label>Punto 1:</label><select id="p1Select" onchange="runLevel3D()"></select></div>
+                            <div class="param-group"><label>Punto 2:</label><select id="p2Select" onchange="runLevel3D()"></select></div>
+                            <div class="param-group"><label>Punto 3:</label><select id="p3Select" onchange="runLevel3D()"></select></div>
+                            <div class="param-group"><label>Punto 4 (Opz.):</label><select id="p4Select" onchange="runLevel3D()"></select></div>
+                        </div>
+                        <button class="btn-project" style="width:100%; margin-top:8px; justify-content:center; background:rgba(22, 101, 52, 0.3); border-color:#16a34a; color:#4ade80;" onclick="autoSuggestPlanePoints()">
+                            💡 Suggerisci Automaticamente i 3 GCP Migliori
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BOX 2: ALLINEAMENTO MANUAL TARGET -->
+                <div class="tool-box disabled-box" id="box2Container" style="border-left: 4px solid var(--purple);">
+                    <h4>
+                        <span>🎯 2. Allineamento Rototraslativo Rigido 3D (CloudCompare-like)</span>
+                        <label style="font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="enableBox2" onchange="toggleBoxState(2)"> Abilita</label>
+                    </h4>
+                    <div id="box2Content">
+                        <div style="display:flex; gap:8px; margin-bottom:8px;">
+                            <button class="btn-project" style="font-size:0.78rem;" onclick="document.getElementById('targetFileInput').click()">📂 Carica CSV Target</button>
+                            <input type="file" id="targetFileInput" accept=".csv,.txt" style="display:none;" onchange="loadTargetPointsFile(event)">
+                            <button class="btn-project" style="font-size:0.78rem;" onclick="toggleTargetPasting()">📋 Incolla / Modifica Testo Target</button>
+                        </div>
+
+                        <textarea id="targetPastingArea" class="matrix-textarea" style="display:none; height:60px;" placeholder="Incolla qui: Nome,X,Y,Z oppure X Y Z" oninput="parseTargetText(this.value)"></textarea>
+                        
+                        <div class="table-container" style="max-height: 140px; margin-bottom:8px;">
+                            <table id="targetMatchingTable">
+                                <thead>
+                                    <tr>
+                                        <th>GCP Rilevato</th>
+                                        <th>Punto Target Associato</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="2" style="text-align:center; color:var(--text-muted);">Nessun punto target caricato.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button class="btn-process" style="padding:8px; font-size:0.85rem; background-color:var(--purple);" onclick="calculateTargetAlignmentRigid()">
+                            🔄 Calcola Rototraslazione Rigida 3D & Matrice
+                        </button>
+
+                        <div id="rmsResultDisplay" style="margin-top:6px; font-weight:700; font-size:0.82rem; color:#c084fc;">
+                            RMS Residuo Rigid 3D Alignment: -- m
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOX 3: MATRICE CLOUDCOMPARE DIRECT PASTE -->
+                <div class="tool-box disabled-box" id="box3Container" style="border-left: 4px solid var(--primary-hover);">
+                    <h4>
+                        <span>☁️ 3. Inserimento Matrice CloudCompare</span>
+                        <label style="font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="enableBox3" onchange="toggleBoxState(3)"> Abilita</label>
+                    </h4>
+                    <div id="box3Content">
+                        <textarea id="ccMatrixInput" class="matrix-textarea" placeholder="Incolla qui la matrice 4x4 da CloudCompare..."></textarea>
+                        <button class="btn-process" style="padding:8px; font-size:0.85rem; margin-top:6px;" onclick="applyCloudCompareMatrix()">
+                            ⚡ Applica Matrice CC ai GCP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- VISUALIZZATORE MATRICE COMBINATA ATTIVA -->
+                <div class="tool-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.82rem; font-weight:700;">Matrice di Trasformazione Corrente (4x4)</span>
+                        <button class="btn-project" style="font-size:0.75rem; padding:3px 8px;" onclick="copyMatrix()">📋 Copia Matrice</button>
+                    </div>
+                    <pre id="matrixDisplay" class="matrix-box">1.000000  0.000000  0.000000  0.000000
+0.000000  1.000000  0.000000  0.000000
+0.000000  0.000000  1.000000  0.000000
+0.000000  0.000000  0.000000  1.000000</pre>
+                </div>
+
+            </div>
+
+            <!-- LATO DESTRO: TABELLA DINAMICA DEI GCP -->
+            <div>
+                <div style="font-weight:700; font-size:0.95rem; color:#93c5fd; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>📋 ELENCO GCP ED ELABORAZIONE DINAMICA</span>
+                    <span id="pointCountBadge" class="badge badge-green">0 Punti Presenti</span>
+                </div>
+
+                <div class="table-container" style="max-height: 720px;">
+                    <table id="mainElabTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align:center;">Staz?</th>
+                                <th style="width: 140px;">Nome Punto</th>
+                                <th>X Elaborata (m)</th>
+                                <th>Y Elaborata (m)</th>
+                                <th>Z Elaborata (m)</th>
+                                <th>Ruolo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nessun dato GCP caricato. Estrai i punti dalla Scheda 1.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="btn-download" style="width:100%; margin-top:15px; background-color:var(--success);" onclick="downloadCSVTab2()">
+                    💾 SCARICA .CSV GCP ELABORATI
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TAB 3: CLASSIFICAZIONE E EXPORT CAD -->
+    <div id="tabGcpAnalysis" class="tab-content">
+        <div class="section-block" style="border-color: var(--primary);">
+            <h3 style="margin-top:0; color:var(--primary);">✏️ Elaborazione Planimetrica & Field-to-Finish</h3>
+            <p class="description" style="margin-bottom:15px;">
+                Configura i parametri del rilievo. Inserisci le descrizioni (es. muro, colonna, letto, albero) per attivare i simboli vettoriali ed i vettori polilinea automatici.
+            </p>
+
+            <div class="grid-params" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+                <div class="param-group">
+                    <label for="caposaldoSelect">Caposaldo Quota Zero (ΔZ)</label>
+                    <select id="caposaldoSelect" onchange="renderUnifiedCadTable()"></select>
+                </div>
+                <div class="param-group">
+                    <label for="dxfDimensionMode">Tipologia Export CAD</label>
+                    <select id="dxfDimensionMode">
+                        <option value="2D">2D Appiattito (Z = 0.0)</option>
+                        <option value="3D">3D Reale (Quota Z)</option>
+                    </select>
+                </div>
+                <div class="param-group">
+                    <label for="treeRadiusInput">Ø Chioma Alberi e Cespugli (m)</label>
+                    <input type="number" id="treeRadiusInput" value="1.50" step="0.1" oninput="drawPreviewCanvas()">
+                </div>
+                <div class="param-group">
+                    <label for="hedgeWidthInput">Larghezza Siepe (m)</label>
+                    <input type="number" id="hedgeWidthInput" value="0.60" step="0.05" oninput="drawPreviewCanvas()">
+                </div>
+                <div class="param-group">
+                    <label for="tombinoFognaInput">Ø Tombino Fogna (m)</label>
+                    <input type="number" id="tombinoFognaInput" value="0.60" step="0.05">
+                </div>
+                <div class="param-group">
+                    <label for="tombinoAcquedottoInput">Ø Acquedotto (m)</label>
+                    <input type="number" id="tombinoAcquedottoInput" value="0.40" step="0.05">
+                </div>
+                <div class="param-group">
+                    <label for="pozzettoQuadratoInput">Lato Pozzetto Quadrato (m)</label>
+                    <input type="number" id="pozzettoQuadratoInput" value="0.40" step="0.05">
+                </div>
+                <div class="param-group">
+                    <label for="tombinoTondoInput">Diametro tombino tondo (generico) (m)</label>
+                    <input type="number" id="tombinoTondoInput" value="0.40" step="0.05">
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; margin-bottom: 10px;">
+            <h3 style="margin:0;">Elaborazione CAD (Tabella Unificata Punti & Feature)</h3>
+        </div>
+
+        <div class="table-container" style="max-height: 480px;">
+            <table id="unifiedCadTable">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Nome GCP</th>
+                        <th style="width: 220px;">Classificazione (Feature / Layer CAD)</th>
+                        <th>X (m)</th>
+                        <th>Y (m)</th>
+                        <th>Z (m)</th>
+                        <th>ΔZ Caposaldo</th>
+                        <th style="width: 260px;">Simbolo / Geometria CAD</th>
+                        <th style="width: 130px;">Chiusura Polilinea</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+            <button class="btn-download" style="background-color:#10b981;" onclick="downloadExcelCSV()">📊 Scarica Excel (.CSV)</button>
+            <button class="btn-download" style="background-color:#2563eb;" onclick="downloadVectorDXF()">📐 Scarica file CAD (.dxf)</button>
+        </div>
+    </div>
+
+    <!-- TAB 4: GALLERY FOTOGRAFICA DELLE STAZIONI (dentro .container, come le schede 1-3) -->
+    <div id="tabVirtualTour" class="tab-content">
+    <div class="section-block">
+        <h3 style="margin-top:0;color:var(--cyan);">📷 Documentazione fotografica delle stazioni</h3>
+        <p class="description">La scheda riutilizza la cartella progetto caricata nella scheda 1: traiettoria e control points vengono letti dalla cartella progetto, le fotografie da <code>[progetto]\shading\Colmap\images</code>. Le fotografie vengono associate alle rotazioni rilevate dalla traiettoria. Nessuno stitching: le immagini originali restano integre.</p>
+        <div class="tab-actions" style="margin-bottom:12px;">
+            <span id="tourFolderStatus" class="status-badge left" style="flex:1 1 100%;">In attesa della cartella selezionata nella scheda 1.</span>
+            <button class="btn-project" onclick="analyzeTourStations()">🔎 Analizza rotazioni e fotografie</button>
+            <button class="btn-project" onclick="openStationGallery()">⛶ Apri gallery a tutto schermo</button>
+            <button class="btn-project" onclick="exportStationGallery()">⬇ Esporta webgallery</button>
+        </div>
+        <div id="tourStatus" class="status-badge left">In attesa dei file di progetto.</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;">
+            <label class="layer-toggle">Tolleranza ritorno (°) <input id="tourReturnTolerance" type="number" value="5" min="1" max="20" step="0.5" style="width:65px" /></label>
+            <label class="layer-toggle">Rotazione minima (°) <input id="tourMinRotation" type="number" value="330" min="300" max="720" step="5" style="width:70px" /></label>
+            <label class="layer-toggle">FOV orizzontale camera (°) <input id="tourCameraFov" type="number" value="180" min="60" max="220" step="1" style="width:65px" /></label>
+            <label class="layer-toggle" title="Usa la nuvola .pcd della cartella progetto come sfondo semplificato del navigatore (anteprima ed export)"><input type="checkbox" id="tourUsePcd" disabled onchange="onTourPcdToggle()"> ☁️ Nuvola di punti come sfondo del navigatore</label>
+            <span id="tourPcdStatus" class="pcd-status" style="display:none;margin:0;align-self:center;"></span>
+        </div>
+    </div>
+    <div class="section-block">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;"><h3 style="margin:0;">Stazioni riconosciute</h3><div class="tab-actions"><button class="btn-project" onclick="autoSelectAllStations()">✨ Seleziona 4 foto per tutte le stazioni</button></div></div>
+        <p class="description">La selezione automatica cerca quattro fotografie con direzioni distanziate di 90° lungo il giro completo. Puoi poi personalizzare la selezione per ogni stazione.</p>
+        <div class="table-container" style="max-height:280px;"><table id="tourStationsTable"><thead><tr><th>Stazione / GCP</th><th>Inizio rotazione</th><th>Fine rotazione</th><th>Durata</th><th>Rotazione cumulativa</th><th>Foto associate</th><th>Foto selezionate</th><th>Copertura</th><th>Apri</th></tr></thead><tbody><tr><td colspan="9" style="text-align:center;color:var(--text-muted)">Eseguire l'analisi per individuare le stazioni.</td></tr></tbody></table></div>
+    </div>
+    <div class="section-block">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;"><h3 style="margin:0;">Fotografie della stazione selezionata</h3><div class="tab-actions"><button class="btn-project" onclick="autoSelectStationPhotos()">✨ Selezione automatica 4 × 90°</button><button class="btn-project" onclick="selectAllStationPhotos(true)">Tutte</button><button class="btn-project" onclick="selectAllStationPhotos(false)">Nessuna</button></div></div>
+        <div id="tourPhotoSummary" class="status-badge">Seleziona una stazione.</div>
+        <div id="tourPhotoGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px;"></div>
+    </div>
+    </div><!-- /tabVirtualTour -->
+</div><!-- /container -->
+
+<div id="stationGalleryOverlay" aria-label="Webgallery fotografica stazioni">
+  <div class="gallery-topbar"><strong id="galleryStationTitle">GCP_1</strong><span id="galleryPhotoCounter">Foto 1 / 4</span><button class="gallery-navbtn" onclick="closeStationGallery()">✕ Chiudi (Esc)</button></div>
+  <div class="gallery-main">
+    <div class="gallery-photo-stage" id="galleryStage"><button class="gallery-arrow left" onclick="galleryPrevPhoto()" aria-label="Foto precedente">‹</button><div class="gallery-track" id="galleryTrack"></div><button class="gallery-arrow right" onclick="galleryNextPhoto()" aria-label="Foto successiva">›</button><div class="gallery-zoombadge" id="galleryZoomBadge">🔍 100%</div></div>
+    <aside class="gallery-side">
+      <div class="gallery-mapbox">
+        <div class="gallery-side-title">Tracciato e posizione delle stazioni</div>
+        <canvas id="galleryTrackMap"></canvas>
+        <div id="galleryMapLegend" class="gallery-legend"><span><i class="dot y"></i>GCP / stazioni</span><span><i class="dot r"></i>Stazione attiva</span></div>
+        <div class="gallery-stnav"><button class="gallery-navbtn" id="galleryPrevStation" onclick="galleryPrevStation()">← Stazione precedente</button><button class="gallery-navbtn primary" id="galleryNextStation" onclick="galleryNextStation()">Stazione successiva →</button></div>
+        <div class="gallery-hint">Mappa: rotella = zoom · trascina = sposta · doppio clic = reset · clic su un pallino = vai alla stazione</div>
+      </div>
+      <div class="gallery-thumbbox"><div class="gallery-side-title">Fotografie della stazione</div><div id="galleryThumbs" class="gallery-thumbs"></div></div>
+    </aside>
+  </div>
+  <div class="gallery-bottombar"><span id="galleryPhotoName" style="font-size:12px;color:#cbd5e1;overflow-wrap:anywhere;"></span><span class="gallery-hint">Foto: rotella = zoom · trascina = sposta/scorri · doppio clic = zoom/reset · clic sulla foto accanto = vai · ← → foto · ↑ ↓ stazione</span></div>
+</div>
+
+<footer>
+    Copyright © 2026 <strong>Andrea Ceolin</strong>. Tutti i diritti riservati.
+</footer>
+
+<script>
+    let rawGcpList = [];       
+    let trjDataList = [];      
+    let processedPoints = [];  
+    let targetPoints = [];     
+    let targetMatches = {}; 
+
+    let trjFile = null, gcpFile = null, calibFile = null;
+    // Moduli aggiuntivi indipendenti: non alterano i parser e gli algoritmi delle schede 1-3.
+    let projectFiles = [], tourFiles = [], tourImages = [], tourStations = [];
+    let selectedTourPhotoNames = new Set(), activeTourStationIndex = 0, tourTrajectoryRows = [];
+    let pcdRaster = null, pcdFileRef = null, pcdLoadPromise = null, pcdLoadToken = 0;
+    let tourCalibration = null;
+    let tourImagesInfo = {expected:'', mode:'none', inFolder:0, actual:''}, tourAnalyzing = false;
+    let calibrationOffsetZ = 0.0;
+
+    let pointSymbolTypes = {}; 
+    let groupClosureState = {}; 
+
+    let matrixBox1 = identityMatrix();
+    let matrixBox2 = identityMatrix();
+    let matrixBox3 = identityMatrix();
+
+    // STATO DEL CANVAS UNIFICATO
+    let canvas, ctx;
+    let viewZoom = 1.0;
+    let viewPanX = 0, viewPanY = 0;
+    let isDraggingCanvas = false;
+    let dragStartX = 0, dragStartY = 0;
+
+    // VETTORI DEL SIMBOLO CHIOMA ALBERO
+    const treeSymbolArcs = [
+        { cx: -24.6192, cy: 0.48168, r: 137.80224, start: 350.23007, end: 6.02322 },
+        { cx: 15.93408, cy: -6.50184, r: 96.65184, start: 331.34738, end: 350.23032 },
+        { cx: -4.476, cy: 4.64904, r: 119.90952, start: 296.88013, end: 331.34799 },
+        { cx: 1.81128, cy: -7.75704, r: 106.00104, start: 260.14572, end: 296.88071 },
+        { cx: 16.1436, cy: 74.772, r: 189.76536, start: 243.38438, end: 260.14679 },
+        { cx: -37.56384, cy: -32.41776, r: 69.87312, start: 215.58514, end: 243.38008 },
+        { cx: 4.17192, cy: -2.56632, r: 121.18584, start: 207.82036, end: 215.5805 },
+        { cx: 36.79608, cy: 14.6532, r: 158.07552, start: 201.02354, end: 207.82164 },
+        { cx: -27.48168, cy: -10.0428, r: 89.21688, start: 172.39963, end: 201.02847 },
+        { cx: 61.32384, cy: -21.89016, r: 178.80912, start: 152.28514, end: 172.40039 },
+        { cx: -25.92144, cy: 23.94264, r: 80.25768, start: 119.94747, end: 152.28451 },
+        { cx: 4.8708, cy: -29.50272, r: 141.93864, start: 95.77431, end: 119.94779 },
+        { cx: 1.98648, cy: -0.99672, r: 113.2872, start: 51.53933, end: 95.77344 },
+        { cx: 5.70336, cy: 3.6828, r: 107.31096, start: 6.02226, end: 51.53932 },
+        { cx: 86.46864, cy: 51.86304, r: 209.48304, start: 199.38194, end: 216.84656 },
+        { cx: -62.41248, cy: -0.51288, r: 51.65784, start: 163.77968, end: 199.38278 },
+        { cx: 53.70072, cy: -34.29504, r: 172.58544, start: 154.99236, end: 163.77852 },
+        { cx: -38.62728, cy: 8.7708, r: 70.70736, start: 141.24437, end: 154.99062 },
+        { cx: -8.7612, cy: -15.2016, r: 109.0044, start: 130.30051, end: 141.24542 },
+        { cx: 166.33224, cy: -221.634, r: 379.69272, start: 124.44579, end: 130.30315 },
+        { cx: 29.106, cy: -21.55488, r: 137.07624, start: 106.36887, end: 124.44775 },
+        { cx: 22.7904, cy: -0.05736, r: 114.67008, start: 86.58911, end: 106.36827 },
+        { cx: 26.32416, cy: 59.29368, r: 55.21416, start: 38.20985, end: 86.5855 },
+        { cx: -52.7916, cy: -2.9868, r: 155.90256, start: 9.98315, end: 38.20995 },
+        { cx: -70.374, cy: -6.08232, r: 173.7552, start: 358.88831, end: 9.98335 },
+        { cx: -49.31616, cy: -6.48912, r: 152.69352, start: 347.04925, end: 358.8877 },
+        { cx: -6.38112, cy: -16.36392, r: 108.63768, start: 316.76218, end: 347.04987 },
+        { cx: -1.03128, cy: -21.39672, r: 101.29248, start: 285.36856, end: 316.76312 },
+        { cx: 4.1076, cy: -40.10016, r: 81.89592, start: 247.04716, end: 285.3699 },
+        { cx: 22.87464, cy: 4.2084, r: 130.0152, start: 216.84672, end: 247.04623 }
+    ];
+
+    // VETTORI DEL SIMBOLO CESPUGLIO (RAGGIERA DI LINEE DAL DXF ALLEGATO, SCALATA A DIAMETRO UNITARIO 1.0 M)
+    const bushSymbolLines = [
+        { x0: 0.0, y0: 0.0, x1: 0.5008, y1: 0.0393 },
+        { x0: 0.0, y0: 0.0, x1: 0.4968, y1: -0.0228 },
+        { x0: 0.0, y0: 0.0, x1: 0.4897, y1: -0.0536 },
+        { x0: 0.0, y0: 0.0, x1: 0.2283, y1: -0.4417 },
+        { x0: 0.0, y0: 0.0, x1: 0.1624, y1: -0.4730 },
+        { x0: 0.0, y0: 0.0, x1: 0.1292, y1: -0.4773 },
+        { x0: 0.0, y0: 0.0, x1: -0.1469, y1: -0.4683 },
+        { x0: 0.0, y0: 0.0, x1: -0.0770, y1: -0.4730 },
+        { x0: -0.0963, y0: -0.3069, x1: -0.1062, y1: -0.4730 },
+        { x0: 0.0, y0: 0.0, x1: -0.4924, y1: -0.0488 },
+        { x0: 0.0, y0: 0.0, x1: -0.4924, y1: 0.0170 },
+        { x0: 0.0, y0: 0.0, x1: -0.4743, y1: -0.1418 },
+        { x0: 0.0, y0: 0.0, x1: -0.4225, y1: 0.2554 },
+        { x0: -0.3126, y0: -0.0934, x1: -0.4707, y1: -0.1858 },
+        { x0: 0.0, y0: 0.0, x1: 0.0150, y1: 0.4985 },
+        { x0: 0.0, y0: 0.0, x1: 0.3791, y1: 0.3308 },
+        { x0: 0.0, y0: 0.0, x1: 0.2615, y1: 0.4231 },
+        { x0: 0.0, y0: 0.0, x1: 0.0703, y1: 0.4985 },
+        { x0: 0.0, y0: 0.0, x1: 0.3057, y1: 0.3881 },
+        { x0: 0.0, y0: 0.0, x1: -0.1947, y1: 0.4497 },
+        { x0: 0.0, y0: 0.0, x1: -0.0660, y1: 0.4985 },
+        { x0: 0.0, y0: 0.0, x1: -0.2278, y1: 0.4412 },
+        { x0: 0.0, y0: 0.0, x1: -0.2756, y1: 0.4098 },
+        { x0: 0.0, y0: 0.0, x1: 0.4200, y1: 0.2819 },
+        { x0: 0.2086, y0: 0.1820, x1: 0.3353, y1: 0.3881 },
+        { x0: 0.0, y0: 0.0, x1: 0.4123, y1: -0.2872 },
+        { x0: 0.0, y0: 0.0, x1: 0.3942, y1: -0.3494 },
+        { x0: -0.3753, y0: -0.3703, x1: -0.3898, y1: -0.2821 },
+        { x0: -0.0327, y0: 0.2473, x1: -0.0217, y1: 0.4937 },
+        { x0: -0.3753, y0: 0.2268, x1: -0.3898, y1: 0.2819 }
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initCanvas();
+    });
+
+    function identityMatrix() {
+        return [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ];
+    }
+
+    function openTab(tabId, event) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if(event && event.currentTarget) event.currentTarget.classList.add('active');
+
+        if(tabId === 'tabElabPura') {
+            updateProcessingAndTables();
+            populateLevelSelects();
+            renderTargetMatchingTable();
+        } else if(tabId === 'tabGcpAnalysis') {
+            renderUnifiedCadTable();
+        } else if(tabId === 'tabVirtualTour') {
+            renderTourStationsTable();
+            if (trjFile && gcpFile && !tourStations.length && !tourAnalyzing) analyzeTourStations();
+        }
+        drawPreviewCanvas();
+    }
+
+    // --- LOGICA DEL CANVAS UNIFICATO ---
+    function initCanvas() {
+        canvas = document.getElementById('previewCanvas');
+        ctx = canvas.getContext('2d');
+        resizeCanvas();
+
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('mousedown', e => {
+            isDraggingCanvas = true;
+            dragStartX = e.clientX - viewPanX;
+            dragStartY = e.clientY - viewPanY;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const worldX = (mouseX - canvas.width / 2 - viewPanX) / viewZoom;
+            const worldY = -(mouseY - canvas.height / 2 - viewPanY) / viewZoom;
+            document.getElementById('canvasCoordsDisplay').innerText = `X: ${worldX.toFixed(3)} m | Y: ${worldY.toFixed(3)} m`;
+
+            if (isDraggingCanvas) {
+                viewPanX = e.clientX - dragStartX;
+                viewPanY = e.clientY - dragStartY;
+                drawPreviewCanvas();
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isDraggingCanvas = false; });
+
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            viewZoom *= zoomFactor;
+            drawPreviewCanvas();
+        }, { passive: false });
+    }
+
+    function resizeCanvas() {
+        if (!canvas) return;
+        const wrapper = document.getElementById('canvasWrapper');
+        canvas.width = wrapper.clientWidth;
+        canvas.height = wrapper.clientHeight;
+        drawPreviewCanvas();
+    }
+
+    function resetCanvasView() {
+        // Estensione complessiva: il fit considera TUTTI i dataset delle tre schede,
+        // non soltanto il primo dataset disponibile.
+        const allPts = [];
+        const addPoint = (x, y, padding = 0) => {
+            if (Number.isFinite(Number(x)) && Number.isFinite(Number(y))) {
+                const px = Number(x), py = Number(y), pad = Math.max(0, Number(padding) || 0);
+                allPts.push({ minX: px - pad, maxX: px + pad, minY: py - pad, maxY: py + pad });
+            }
+        };
+
+        // Scheda 1: traiettoria e GCP grezzi
+        trjDataList.forEach(p => addPoint(p.tx, p.ty));
+        rawGcpList.forEach(p => addPoint(p.x, p.y));
+
+        // Scheda 2: GCP elaborati e stazioni
+        const treeRadius = (parseFloat(document.getElementById('treeRadiusInput')?.value) || 1.5) / 2;
+        processedPoints.forEach(p => {
+            const sym = pointSymbolTypes[p.finalName] || 'POINT';
+            const symbolPadding = (sym === 'ALBERO' || sym === 'CESPUGLIO') ? treeRadius : 0;
+            addPoint(p.calcX, p.calcY, symbolPadding);
+        });
+
+        // Scheda 3: punti di riferimento importati
+        targetPoints.forEach(p => addPoint(p.x, p.y));
+
+        if (allPts.length === 0) {
+            viewZoom = 1.0;
+            viewPanX = 0;
+            viewPanY = 0;
+            drawPreviewCanvas();
+            return;
+        }
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        allPts.forEach(p => {
+            if (p.minX < minX) minX = p.minX;
+            if (p.maxX > maxX) maxX = p.maxX;
+            if (p.minY < minY) minY = p.minY;
+            if (p.maxY > maxY) maxY = p.maxY;
+        });
+
+        const spanX = Math.max(maxX - minX, 0.10);
+        const spanY = Math.max(maxY - minY, 0.10);
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // Margine per etichette e simboli; evita zoom eccessivo su dataset puntuali.
+        const availableWidth = Math.max(1, canvas.width - 80);
+        const availableHeight = Math.max(1, canvas.height - 80);
+        const scaleX = availableWidth / spanX;
+        const scaleY = availableHeight / spanY;
+        viewZoom = Math.min(scaleX, scaleY, 5000);
+        viewZoom = Math.max(viewZoom, 0.01);
+
+        viewPanX = -centerX * viewZoom;
+        viewPanY = centerY * viewZoom;
+        drawPreviewCanvas();
+    }
+
+    function worldToScreen(wx, wy) {
+        const sx = canvas.width / 2 + viewPanX + wx * viewZoom;
+        const sy = canvas.height / 2 + viewPanY - wy * viewZoom;
+        return { x: sx, y: sy };
+    }
+
+    function drawPreviewCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Griglia di Sfondo (Grid 1m / 10m)
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        const gridStep = Math.max(1, Math.pow(10, Math.floor(Math.log10(100 / viewZoom))));
+        
+        const startWorldX = Math.floor((-canvas.width / 2 - viewPanX) / (viewZoom * gridStep)) * gridStep;
+        const endWorldX = Math.ceil((canvas.width / 2 - viewPanX) / (viewZoom * gridStep)) * gridStep;
+        const startWorldY = Math.floor((-canvas.height / 2 + viewPanY) / (viewZoom * gridStep)) * gridStep;
+        const endWorldY = Math.ceil((canvas.height / 2 + viewPanY) / (viewZoom * gridStep)) * gridStep;
+
+        ctx.beginPath();
+        for (let wx = startWorldX; wx <= endWorldX; wx += gridStep) {
+            const p1 = worldToScreen(wx, startWorldY);
+            const p2 = worldToScreen(wx, endWorldY);
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        }
+        for (let wy = startWorldY; wy <= endWorldY; wy += gridStep) {
+            const p1 = worldToScreen(startWorldX, wy);
+            const p2 = worldToScreen(endWorldX, wy);
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        }
+        ctx.stroke();
+
+        // Layer opzionale: nuvola PCD semplificata (raster planimetrico), solo come sfondo di riferimento.
+        if (document.getElementById('layerPcd')?.checked && pcdRaster) {
+            drawPcdRaster(ctx, pcdRaster, worldToScreen, canvas.width, canvas.height, 0.9);
+        }
+
+        // 1. Layer Traiettoria TRJ (Azzurro)
+        if (document.getElementById('layerTrj').checked && trjDataList.length > 0) {
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            trjDataList.forEach((p, idx) => {
+                const sp = worldToScreen(p.tx, p.ty);
+                if (idx === 0) ctx.moveTo(sp.x, sp.y);
+                else ctx.lineTo(sp.x, sp.y);
+            });
+            ctx.stroke();
+        }
+
+        // 2. Layer GCP Grezzi Scheda 1 (Rosso)
+        if (document.getElementById('layerRawGcp').checked && rawGcpList.length > 0) {
+            rawGcpList.forEach(p => {
+                const sp = worldToScreen(p.x, p.y);
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#fca5a5';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(p.origId, sp.x + 6, sp.y - 4);
+            });
+        }
+
+        // 3. Layer GCP Elaborati Scheda 2 (Verde / Blu Stazione)
+        if (document.getElementById('layerElabGcp').checked && processedPoints.length > 0) {
+            processedPoints.forEach(p => {
+                const sp = worldToScreen(p.calcX, p.calcY);
+                ctx.fillStyle = p.isStation ? '#3b82f6' : '#10b981';
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, p.isStation ? 6 : 4.5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = p.isStation ? '#93c5fd' : '#6ee7b7';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(p.finalName, sp.x + 8, sp.y + 4);
+            });
+        }
+
+        // 4. Layer Feature CAD Scheda 3 (Arancione / Polilinee)
+        if (document.getElementById('layerCad').checked && processedPoints.length > 0) {
+            const groups = groupPointsByFeature();
+            Object.keys(groups).forEach(layerName => {
+                const pts = groups[layerName];
+                const linePts = pts.filter(p => pointSymbolTypes[p.finalName] === 'LINE' || pointSymbolTypes[p.finalName] === 'SIEPE');
+
+                if (linePts.length >= 2) {
+                    const upperLayerName = layerName.toUpperCase();
+                    const isClosed = !!groupClosureState[upperLayerName];
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    linePts.forEach((p, idx) => {
+                        const sp = worldToScreen(p.calcX, p.calcY);
+                        if (idx === 0) ctx.moveTo(sp.x, sp.y);
+                        else ctx.lineTo(sp.x, sp.y);
+                    });
+                    if (isClosed) ctx.closePath();
+                    ctx.stroke();
+                }
+
+                // Chiome e Simboli
+                pts.forEach(p => {
+                    const sym = pointSymbolTypes[p.finalName];
+                    const sp = worldToScreen(p.calcX, p.calcY);
+                    if (sym === 'ALBERO' || sym === 'CESPUGLIO') {
+                        let radM = (parseFloat(document.getElementById('treeRadiusInput').value) || 1.5) / 2.0;
+                        let radPx = radM * viewZoom;
+                        ctx.strokeStyle = sym === 'ALBERO' ? '#22c55e' : '#a855f7';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.arc(sp.x, sp.y, Math.max(radPx, 5), 0, 2 * Math.PI);
+                        ctx.stroke();
+                    }
+                });
+            });
+        }
+
+        // 5. Layer Target Points (Viola)
+        if (document.getElementById('layerTarget').checked && targetPoints.length > 0) {
+            targetPoints.forEach(t => {
+                const sp = worldToScreen(t.x, t.y);
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(sp.x - 6, sp.y); ctx.lineTo(sp.x + 6, sp.y);
+                ctx.moveTo(sp.x, sp.y - 6); ctx.lineTo(sp.x, sp.y + 6);
+                ctx.stroke();
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(t.name, sp.x + 8, sp.y - 4);
+            });
+        }
+    }
+
+    // --- SCHEDA 1: ESTRAZIONE GCP ---
+    const dropZone = document.getElementById('dropZone');
+    const folderInput = document.getElementById('folderInput');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); }, false);
+    });
+
+    // Evita che il browser apra il file se si rilascia fuori dalla drop zone
+    ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+
+    // Percorso relativo del file (webkitRelativePath con il picker, _relPath con il drag&drop ricorsivo)
+    function relPathOf(f) { return (f && (f._relPath || f.webkitRelativePath)) || (f ? f.name : ''); }
+    function pathDepth(f) { return relPathOf(f).split('/').length; }
+
+    // Il drop di una cartella fornisce solo la cartella (non i file): va letta ricorsivamente.
+    async function readDroppedEntries(items) {
+        const entries = [];
+        for (const it of items) { const en = it.webkitGetAsEntry && it.webkitGetAsEntry(); if (en) entries.push(en); } // sincrono
+        const readAll = (reader) => new Promise((res, rej) => {
+            const all = [];
+            const next = () => reader.readEntries(b => { if (!b.length) res(all); else { all.push(...b); next(); } }, rej);
+            next();
+        });
+        const files = [];
+        const walk = async (entry, prefix) => {
+            if (entry.isFile) {
+                const f = await new Promise((res, rej) => entry.file(res, rej));
+                f._relPath = prefix + entry.name;
+                files.push(f);
+            } else if (entry.isDirectory) {
+                const list = await readAll(entry.createReader());
+                await Promise.all(list.map(e => walk(e, prefix + entry.name + '/')));
+            }
+        };
+        await Promise.all(entries.map(en => walk(en, '')));
+        return files;
+    }
+
+    dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const dt = e.dataTransfer;
+        if (dt.items && dt.items.length && dt.items[0].webkitGetAsEntry) {
+            const st = document.getElementById('tourFolderStatus');
+            if (st) st.textContent = 'Lettura ricorsiva della cartella in corso…';
+            try {
+                const files = await readDroppedEntries(Array.from(dt.items));
+                if (files.length) handleFileList(files);
+            } catch (err) { console.error(err); alert('Errore nella lettura della cartella: ' + err.message); }
+        } else if (dt.files && dt.files.length > 0) {
+            handleFileList(Array.from(dt.files));
+        }
+    });
+
+    folderInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) handleFileList(Array.from(e.target.files));
+    });
+
+    function handleFileList(files) {
+        projectFiles = Array.from(files || []);
+        tourFiles = projectFiles;
+        trjFile = null; gcpFile = null; calibFile = null;
+        tourStations = []; tourTrajectoryRows = []; activeTourStationIndex = 0; selectedTourPhotoNames = new Set();
+        pcdRaster = null; pcdLoadPromise = null; pcdLoadToken++; tourCalibration = null; calibrationOffsetZ = 0.0;
+
+        // A parità di nome vince il file più vicino alla radice del progetto (non quelli nelle sottocartelle)
+        const isImg = f => /\.(png|jpe?g|bmp|tif+)$/i.test(f.name);
+        const pick = test => projectFiles.filter(test).sort((a, b) => pathDepth(a) - pathDepth(b) || relPathOf(a).length - relPathOf(b).length)[0] || null;
+        const isTrj = f => { const n = f.name.toLowerCase(); return !isImg(f) && (n.includes('trj.txt') || n.includes('trajectory')); };
+        trjFile = pick(isTrj);
+        gcpFile = pick(f => { const n = f.name.toLowerCase(); return !isImg(f) && !isTrj(f) && (n.includes('controlpoint') || n.includes('gcp')); });
+        calibFile = pick(f => f.name.toLowerCase() === 'calib.json');
+
+        const setBadge = (id, ok, okText, noText) => {
+            const el = document.getElementById(id);
+            el.textContent = ok ? okText : noText;
+            el.classList.toggle('loaded', !!ok);
+        };
+        setBadge('statusTrj', trjFile, trjFile ? `🟢 TRJ: ${relPathOf(trjFile)}` : '', '📊 Traiettoria: Assente');
+        setBadge('statusGcp', gcpFile, gcpFile ? `🟢 GCP: ${relPathOf(gcpFile)}` : '', '📊 Control Points: Assenti');
+        setBadge('statusCalib', calibFile, '🟢 Calibrazione JSON', '📊 Calibrazione: Default');
+
+        pcdFileRef = pick(f => f.name.toLowerCase() === 'recalculate_result.pcd') || pick(f => f.name.toLowerCase().endsWith('.pcd'));
+        const hasPcd = !!pcdFileRef;
+        ['layerPcd', 'tourUsePcd'].forEach(id => { const el = document.getElementById(id); if (el) { el.disabled = !hasPcd; el.checked = false; } });
+        const lp = document.getElementById('layerPcd');
+        if (lp && lp.parentElement) lp.parentElement.title = hasPcd ? `PCD disponibile: ${relPathOf(pcdFileRef)}` : 'Nessun file .pcd nella cartella progetto';
+        setPcdStatus(hasPcd ? `☁️ PCD trovato: ${relPathOf(pcdFileRef)} (${(pcdFileRef.size / 1048576).toFixed(0)} MB) — spunta "Nuvola PCD" per importarlo come sfondo semplificato.` : '☁️ Nessun file .pcd trovato nella cartella progetto.', hasPcd ? '' : 'warn');
+
+        if (calibFile) readFileText(calibFile, text => parseCalibJson(text));
+
+        // Scheda 4: immagini cercate in [cartella progetto]/shading/Colmap/images
+        refreshTourFilesFromProject();
+        document.getElementById('processBtn').disabled = !(trjFile && gcpFile);
+        drawPreviewCanvas();
+    }
+
+    function readFileText(file, cb) {
+        const reader = new FileReader();
+        reader.onload = (e) => cb(e.target.result);
+        reader.readAsText(file);
+    }
+
+    function parseCalibJson(text) {
+        try {
+            const calib = JSON.parse(text);
+            tourCalibration = calib;
+            if (calib.out_put && calib.out_put.front && calib.out_put.front.transform_matrix) {
+                calibrationOffsetZ = calib.out_put.front.transform_matrix[2][3] || 0.0;
+            }
+        } catch (e) { console.error("Errore parsing calib.json", e); }
+    }
+
+    function processTab1() {
+        if (!trjFile || !gcpFile) return;
+        readFileText(trjFile, trjTxt => {
+            trjDataList = parseTRJ(trjTxt);
+            readFileText(gcpFile, gcpTxt => {
+                const rawTimestamps = parseGCP(gcpTxt);
+                matchGcpWithTrajectory(rawTimestamps);
+            });
+        });
+    }
+
+    function parseTRJ(text) {
+        const lines = text.split(/\r?\n/);
+        const list = [];
+        for (let line of lines) {
+            line = line.trim();
+            if (!line || line.startsWith('#')) continue;
+            const parts = line.split(/\s+/);
+            if (parts.length >= 4) {
+                const ts = parseFloat(parts[0]), tx = parseFloat(parts[1]), ty = parseFloat(parts[2]), tz = parseFloat(parts[3]);
+                if (!isNaN(ts) && !isNaN(tx)) list.push({ ts, tx, ty, tz });
+            }
+        }
+        return list.sort((a, b) => a.ts - b.ts);
+    }
+
+    function parseGCP(text) {
+        const lines = text.split(/\r?\n/);
+        const list = [];
+        for (let line of lines) {
+            line = line.trim();
+            if (!line || line.startsWith('#')) continue;
+            const parts = line.split(/\s+/);
+            if (parts.length >= 1) {
+                const ts = parseFloat(parts[0]);
+                if (!isNaN(ts)) list.push(ts);
+            }
+        }
+        return list;
+    }
+
+    function matchGcpWithTrajectory(timestamps) {
+        const win = parseFloat(document.getElementById('searchWindow').value) || 3.0;
+        const thresh = parseFloat(document.getElementById('staticThresh').value) || 0.04;
+        rawGcpList = [];
+
+        timestamps.forEach((ts, idx) => {
+            const halfWin = win / 2.0;
+            const subPts = trjDataList.filter(p => Math.abs(p.ts - ts) <= halfWin);
+
+            let avgX = 0, avgY = 0, avgZ = 0;
+            if (subPts.length > 0) {
+                const centerP = subPts.reduce((prev, curr) => Math.abs(curr.ts - ts) < Math.abs(prev.ts - ts) ? curr : prev);
+                const staticPts = subPts.filter(p => Math.sqrt(Math.pow(p.tx - centerP.tx, 2) + Math.pow(p.ty - centerP.ty, 2) + Math.pow(p.tz - centerP.tz, 2)) <= thresh);
+                
+                const ptsToAverage = staticPts.length > 0 ? staticPts : subPts;
+                avgX = ptsToAverage.reduce((s, p) => s + p.tx, 0) / ptsToAverage.length;
+                avgY = ptsToAverage.reduce((s, p) => s + p.ty, 0) / ptsToAverage.length;
+                avgZ = ptsToAverage.reduce((s, p) => s + p.tz, 0) / ptsToAverage.length;
+            }
+
+            rawGcpList.push({
+                origId: `GCP_${idx + 1}`,
+                ts, x: avgX, y: avgY, z: avgZ,
+                isStation: false, customName: "", feature: ""
+            });
+        });
+
+        const tbody = document.querySelector('#resultsTable tbody');
+        tbody.innerHTML = '';
+        rawGcpList.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><strong>${p.origId}</strong></td><td>${p.x.toFixed(4)}</td><td>${p.y.toFixed(4)}</td><td>${p.z.toFixed(4)}</td><td><span class="badge badge-green">Sosta OK</span></td>`;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('resultsSection').style.display = 'block';
+        resetCanvasView();
+        openTab('tabElabPura');
+    }
+
+    // --- SCHEDA 2: ELABORAZIONE & HORN QUATERNION ALIGNMENT ---
+    function toggleBoxState(boxNum) {
+        const chk = document.getElementById(`enableBox${boxNum}`);
+        const container = document.getElementById(`box${boxNum}Container`);
+        
+        if (!chk.checked) {
+            container.classList.add('disabled-box');
+            if (boxNum === 1) matrixBox1 = identityMatrix();
+            if (boxNum === 2) matrixBox2 = identityMatrix();
+            if (boxNum === 3) matrixBox3 = identityMatrix();
+        } else {
+            container.classList.remove('disabled-box');
+            if (boxNum === 1) runLevel3D();
+            if (boxNum === 2) calculateTargetAlignmentRigid();
+            if (boxNum === 3) applyCloudCompareMatrix();
+        }
+        updateProcessingAndTables();
+    }
+
+    function updateProcessingAndTables() {
+        if (!rawGcpList || rawGcpList.length === 0) return;
+
+        const doDedup = document.getElementById('enableDeduplication').checked;
+        const dedupDist = parseFloat(document.getElementById('dedupDistanceThresh').value) || 0.10;
+        const dedupTime = parseFloat(document.getElementById('dedupTimeThresh').value) || 60;
+        const dedupMode = document.getElementById('dedupMode').value;
+
+        let workingList = [];
+        let auditList = [];
+        let dedupCount = 0;
+
+        if (doDedup) {
+            let used = new Array(rawGcpList.length).fill(false);
+            for (let i = 0; i < rawGcpList.length; i++) {
+                if (used[i]) continue;
+                let cluster = [rawGcpList[i]];
+                used[i] = true;
+
+                for (let j = i + 1; j < rawGcpList.length; j++) {
+                    if (used[j]) continue;
+                    const dX = rawGcpList[j].x - rawGcpList[i].x;
+                    const dY = rawGcpList[j].y - rawGcpList[i].y;
+                    const dZ = rawGcpList[j].z - rawGcpList[i].z;
+                    const dist3D = Math.sqrt(dX*dX + dY*dY + dZ*dZ);
+                    const dt = Math.abs(rawGcpList[j].ts - rawGcpList[i].ts);
+
+                    if (dist3D <= dedupDist && (dedupTime === 0 || dt <= dedupTime)) {
+                        cluster.push(rawGcpList[j]);
+                        used[j] = true;
+                    }
+                }
+
+                if (cluster.length > 1) {
+                    dedupCount += (cluster.length - 1);
+                    let masterP = { ...cluster[0] };
+                    if (dedupMode === 'AVERAGE') {
+                        masterP.x = cluster.reduce((s, p) => s + p.x, 0) / cluster.length;
+                        masterP.y = cluster.reduce((s, p) => s + p.y, 0) / cluster.length;
+                        masterP.z = cluster.reduce((s, p) => s + p.z, 0) / cluster.length;
+                    } else if (dedupMode === 'LAST') {
+                        masterP = { ...cluster[cluster.length - 1] };
+                    }
+                    workingList.push(masterP);
+
+                    cluster.forEach((p, cIdx) => {
+                        auditList.push({
+                            origId: p.origId, x: p.x, y: p.y, z: p.z,
+                            status: (cIdx === 0) ? 'MASTER' : 'DELETED',
+                            action: `Accorpato nel gruppo (${cluster.length} registrazioni)`
+                        });
+                    });
+                } else {
+                    workingList.push({ ...rawGcpList[i] });
+                    auditList.push({ origId: rawGcpList[i].origId, x: rawGcpList[i].x, y: rawGcpList[i].y, z: rawGcpList[i].z, status: 'UNIQUE', action: 'Punto Singolo' });
+                }
+            }
+        } else {
+            workingList = rawGcpList.map(p => ({ ...p }));
+            auditList = rawGcpList.map(p => ({ origId: p.origId, x: p.x, y: p.y, z: p.z, status: 'UNIQUE', action: 'Filtro Disattivato' }));
+        }
+
+        const dedupTbody = document.querySelector('#dedupAuditTable tbody');
+        dedupTbody.innerHTML = '';
+        auditList.forEach(item => {
+            let badgeHtml = '<span class="badge badge-green">Unico</span>';
+            if (item.status === 'MASTER') badgeHtml = '<span class="badge badge-yellow">Master</span>';
+            if (item.status === 'DELETED') badgeHtml = '<span class="badge badge-red">Eliminato</span>';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><strong>${item.origId}</strong></td><td>${item.x.toFixed(3)}</td><td>${item.y.toFixed(3)}</td><td>${item.z.toFixed(3)}</td><td>${badgeHtml}</td><td style="font-size:0.75rem;">${item.action}</td>`;
+            dedupTbody.appendChild(tr);
+        });
+        document.getElementById('dedupBadgeSummary').innerText = `${dedupCount} Duplicati Rimosso/Fusi`;
+
+        if (processedPoints.length > 0) {
+            workingList.forEach((p, idx) => {
+                if (processedPoints[idx]) {
+                    p.isStation = processedPoints[idx].isStation;
+                    p.customName = processedPoints[idx].customName;
+                    p.feature = processedPoints[idx].feature;
+                }
+            });
+        }
+
+        const strategy = document.getElementById('renameStrategy').value;
+        const gcpPrefix = document.getElementById('gcpPrefix').value;
+        const startNumVal = document.getElementById('startNum').value;
+        const startNum = (startNumVal !== "" && !isNaN(startNumVal)) ? parseInt(startNumVal) : 0;
+        const defaultStationName = document.getElementById('stationDefaultPrefix').value || "1000";
+
+        let continuousCounter = startNum;
+        let lastStationName = defaultStationName;
+        let stationSubCounter = 1;
+
+        workingList.forEach((p) => {
+            if (p.isStation) {
+                if (!p.customName || p.customName.trim() === "") p.customName = lastStationName;
+                p.finalName = p.customName;
+                lastStationName = p.customName;
+                stationSubCounter = 1;
+                p.feature = "Caposaldo / Stazione";
+            } else {
+                if (strategy === 'CONTINUOUS') {
+                    p.finalName = `${gcpPrefix}${continuousCounter}`;
+                    continuousCounter++;
+                } else if (strategy === 'STATION_NUMERIC') {
+                    let baseNum = parseInt(lastStationName);
+                    p.finalName = !isNaN(baseNum) ? `${baseNum + stationSubCounter}` : `${lastStationName}-${stationSubCounter}`;
+                    stationSubCounter++;
+                } else if (strategy === 'STATION_PREFIX') {
+                    let formattedSub = stationSubCounter < 10 ? `00${stationSubCounter}` : (stationSubCounter < 100 ? `0${stationSubCounter}` : `${stationSubCounter}`);
+                    p.finalName = `${lastStationName}_${formattedSub}`;
+                    stationSubCounter++;
+                }
+            }
+        });
+
+        let combinedMatrix = multiplyMatrices(matrixBox1, matrixBox2);
+        combinedMatrix = multiplyMatrices(combinedMatrix, matrixBox3);
+
+        const targetH = parseFloat(document.getElementById('zCorrHeight').value) || 0;
+        const offX = parseFloat(document.getElementById('xOffsetPura').value) || 0;
+        const offY = parseFloat(document.getElementById('yOffsetPura').value) || 0;
+
+        workingList.forEach((p) => {
+            const baseX = p.x + offX;
+            const baseY = p.y + offY;
+            const baseZ = p.z - targetH - calibrationOffsetZ;
+
+            const M = combinedMatrix;
+            p.calcX = M[0][0]*baseX + M[0][1]*baseY + M[0][2]*baseZ + M[0][3];
+            p.calcY = M[1][0]*baseX + M[1][1]*baseY + M[1][2]*baseZ + M[1][3];
+            p.calcZ = M[2][0]*baseX + M[2][1]*baseY + M[2][2]*baseZ + M[2][3];
+        });
+
+        processedPoints = workingList;
+        renderMainElabTable();
+        updateMatrixDisplay(combinedMatrix);
+        drawPreviewCanvas();
+    }
+
+    function renderMainElabTable() {
+        const tbody = document.querySelector('#mainElabTable tbody');
+        tbody.innerHTML = '';
+        document.getElementById('pointCountBadge').innerText = `${processedPoints.length} Punti Presenti`;
+
+        processedPoints.forEach((p, idx) => {
+            const tr = document.createElement('tr');
+            if (p.isStation) tr.style.backgroundColor = 'rgba(30, 58, 138, 0.3)';
+
+            tr.innerHTML = `
+                <td style="text-align:center;">
+                    <input type="checkbox" ${p.isStation ? 'checked' : ''} onchange="toggleStation(${idx}, this.checked)">
+                </td>
+                <td>
+                    <input type="text" class="editable-input" value="${p.finalName}" onchange="updatePointCustomName(${idx}, this.value)">
+                </td>
+                <td>${p.calcX.toFixed(4)}</td>
+                <td>${p.calcY.toFixed(4)}</td>
+                <td>${p.calcZ.toFixed(4)}</td>
+                <td><span class="badge ${p.isStation ? 'badge-station' : 'badge-green'}">${p.isStation ? 'STAZIONE' : 'GCP'}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleStation(idx, isChecked) {
+        processedPoints[idx].isStation = isChecked;
+        processedPoints[idx].feature = isChecked ? "Caposaldo / Stazione" : "";
+        if (isChecked && (!processedPoints[idx].customName || processedPoints[idx].customName === "")) {
+            processedPoints[idx].customName = "1000";
+        }
+        updateProcessingAndTables();
+    }
+
+    function updatePointCustomName(idx, val) {
+        processedPoints[idx].customName = val;
+        processedPoints[idx].finalName = val;
+        updateProcessingAndTables();
+    }
+
+    function populateLevelSelects() {
+        const selects = ['p1Select', 'p2Select', 'p3Select', 'p4Select'];
+        selects.forEach(id => {
+            const sel = document.getElementById(id);
+            sel.innerHTML = id === 'p4Select' ? '<option value="">-- Nessuno --</option>' : '';
+            processedPoints.forEach((p, idx) => {
+                sel.innerHTML += `<option value="${idx}">${p.finalName} (${p.calcX.toFixed(1)}, ${p.calcY.toFixed(1)})</option>`;
+            });
+        });
+    }
+
+    function autoSuggestPlanePoints() {
+        if (processedPoints.length < 3) return alert("Occorrono almeno 3 GCP estratti.");
+        document.getElementById('p1Select').value = 0;
+        document.getElementById('p2Select').value = 1;
+        document.getElementById('p3Select').value = 2;
+        runLevel3D();
+    }
+
+    function runLevel3D() {
+        if (!document.getElementById('enableBox1').checked) return;
+
+        const p1 = processedPoints[document.getElementById('p1Select').value];
+        const p2 = processedPoints[document.getElementById('p2Select').value];
+        const p3 = processedPoints[document.getElementById('p3Select').value];
+
+        if (!p1 || !p2 || !p3) return;
+
+        const ax = p2.x - p1.x, ay = p2.y - p1.y, az = p2.z - p1.z;
+        const bx = p3.x - p1.x, by = p3.y - p1.y, bz = p3.z - p1.z;
+
+        let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+        const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+        if (len === 0) return;
+        nx /= len; ny /= len; nz /= len;
+
+        const cosT = nz, sinT = Math.sqrt(nx*nx + ny*ny);
+        const ux = -ny / (sinT || 1), uy = nx / (sinT || 1);
+
+        matrixBox1 = [
+            [cosT + ux*ux*(1-cosT), ux*uy*(1-cosT), uy*sinT, 0],
+            [ux*uy*(1-cosT), cosT + uy*uy*(1-cosT), -ux*sinT, 0],
+            [-uy*sinT, ux*sinT, cosT, -p1.z],
+            [0, 0, 0, 1]
+        ];
+
+        updateProcessingAndTables();
+    }
+
+    function toggleTargetPasting() {
+        const area = document.getElementById('targetPastingArea');
+        area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function loadTargetPointsFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => parseTargetText(e.target.result);
+        reader.readAsText(file);
+    }
+
+    function parseTargetText(text) {
+        targetPoints = [];
+        text.split(/\r?\n/).forEach(line => {
+            line = line.trim();
+            if (!line) return;
+            const parts = line.split(/[,;\s]+/);
+            if (parts.length >= 3) {
+                if (isNaN(parseFloat(parts[0]))) {
+                    targetPoints.push({ name: parts[0], x: parseFloat(parts[1]), y: parseFloat(parts[2]), z: parseFloat(parts[3]) || 0 });
+                } else {
+                    targetPoints.push({ name: `T_${targetPoints.length+1}`, x: parseFloat(parts[0]), y: parseFloat(parts[1]), z: parseFloat(parts[2]) || 0 });
+                }
+            }
+        });
+        renderTargetMatchingTable();
+        resetCanvasView();
+    }
+
+    function renderTargetMatchingTable() {
+        const tbody = document.querySelector('#targetMatchingTable tbody');
+        tbody.innerHTML = '';
+        
+        if (processedPoints.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">Nessun GCP elaborato disponibile.</td></tr>';
+            return;
+        }
+
+        processedPoints.forEach((p, idx) => {
+            let optionsHtml = '<option value="">-- Non Associato --</option>';
+            targetPoints.forEach((t, tIdx) => {
+                const selected = targetMatches[idx] === tIdx ? 'selected' : '';
+                optionsHtml += `<option value="${tIdx}" ${selected}>${t.name} (${t.x.toFixed(2)}, ${t.y.toFixed(2)}, ${t.z.toFixed(2)})</option>`;
+            });
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${p.finalName}</strong></td>
+                <td><select class="editable-input" onchange="targetMatches[${idx}] = this.value !== '' ? parseInt(this.value) : null">${optionsHtml}</select></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateTargetAlignmentRigid() {
+        if (!document.getElementById('enableBox2').checked) return;
+
+        let P = [], Q = [];
+        const targetH = parseFloat(document.getElementById('zCorrHeight').value) || 0;
+        const offX = parseFloat(document.getElementById('xOffsetPura').value) || 0;
+        const offY = parseFloat(document.getElementById('yOffsetPura').value) || 0;
+
+        processedPoints.forEach((p, idx) => {
+            const tIdx = targetMatches[idx];
+            if (tIdx !== undefined && tIdx !== null && targetPoints[tIdx]) {
+                const baseX = p.x + offX;
+                const baseY = p.y + offY;
+                const baseZ = p.z - targetH - calibrationOffsetZ;
+                P.push([baseX, baseY, baseZ]);
+                const t = targetPoints[tIdx];
+                Q.push([t.x, t.y, t.z]);
+            }
+        });
+
+        const N = P.length;
+        if (N < 3) return alert("Associa almeno 3 GCP ai punti target per il calcolo della rototraslazione rigida 3D.");
+
+        let cP = [0, 0, 0], cQ = [0, 0, 0];
+        for (let i = 0; i < N; i++) {
+            cP[0] += P[i][0]; cP[1] += P[i][1]; cP[2] += P[i][2];
+            cQ[0] += Q[i][0]; cQ[1] += Q[i][1]; cQ[2] += Q[i][2];
+        }
+        cP = cP.map(v => v / N);
+        cQ = cQ.map(v => v / N);
+
+        let M = [[0,0,0],[0,0,0],[0,0,0]];
+        for (let i = 0; i < N; i++) {
+            const px = P[i][0] - cP[0], py = P[i][1] - cP[1], pz = P[i][2] - cP[2];
+            const qx = Q[i][0] - cQ[0], qy = Q[i][1] - cQ[1], qz = Q[i][2] - cQ[2];
+
+            M[0][0] += px * qx; M[0][1] += px * qy; M[0][2] += px * qz;
+            M[1][0] += py * qx; M[1][1] += py * qy; M[1][2] += py * qz;
+            M[2][0] += pz * qx; M[2][1] += pz * qy; M[2][2] += pz * qz;
+        }
+
+        const Sxx = M[0][0], Sxy = M[0][1], Sxz = M[0][2];
+        const Syx = M[1][0], Syy = M[1][1], Syz = M[1][2];
+        const Szx = M[2][0], Szy = M[2][1], Szz = M[2][2];
+
+        let N4 = [
+            [ Sxx + Syy + Szz,       Syz - Szy,       Szx - Sxz,       Sxy - Syx ],
+            [       Syz - Szy, Sxx - Syy - Szz,       Sxy + Syx,       Szx + Sxz ],
+            [       Szx - Sxz,       Sxy + Syx, -Sxx + Syy - Szz,       Syz + Szy ],
+            [       Sxy - Syx,       Szx + Sxz,       Syz + Szy, -Sxx - Syy + Szz ]
+        ];
+
+        let q = maxEigenvector4x4(N4);
+
+        const qLen = Math.sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+        q = q.map(v => v / (qLen || 1));
+
+        const q0 = q[0], q1 = q[1], q2 = q[2], q3 = q[3];
+        
+        let R3 = [
+            [ q0*q0 + q1*q1 - q2*q2 - q3*q3, 2*(q1*q2 - q0*q3),         2*(q1*q3 + q0*q2) ],
+            [ 2*(q1*q2 + q0*q3),         q0*q0 - q1*q1 + q2*q2 - q3*q3, 2*(q2*q3 - q0*q1) ],
+            [ 2*(q1*q3 - q0*q2),         2*(q2*q3 + q0*q1),         q0*q0 - q1*q1 - q2*q2 + q3*q3 ]
+        ];
+
+        let T3 = [
+            cQ[0] - (R3[0][0]*cP[0] + R3[0][1]*cP[1] + R3[0][2]*cP[2]),
+            cQ[1] - (R3[1][0]*cP[0] + R3[1][1]*cP[1] + R3[1][2]*cP[2]),
+            cQ[2] - (R3[2][0]*cP[0] + R3[2][1]*cP[1] + R3[2][2]*cP[2])
+        ];
+
+        matrixBox2 = [
+            [R3[0][0], R3[0][1], R3[0][2], T3[0]],
+            [R3[1][0], R3[1][1], R3[1][2], T3[1]],
+            [R3[2][0], R3[2][1], R3[2][2], T3[2]],
+            [0,        0,        0,        1]
+        ];
+
+        let sqErr = 0;
+        for (let i = 0; i < N; i++) {
+            const rx = (R3[0][0]*P[i][0] + R3[0][1]*P[i][1] + R3[0][2]*P[i][2] + T3[0]) - Q[i][0];
+            const ry = (R3[1][0]*P[i][0] + R3[1][1]*P[i][1] + R3[1][2]*P[i][2] + T3[1]) - Q[i][1];
+            const rz = (R3[2][0]*P[i][0] + R3[2][1]*P[i][1] + R3[2][2]*P[i][2] + T3[2]) - Q[i][2];
+            sqErr += (rx*rx + ry*ry + rz*rz);
+        }
+        const rms = Math.sqrt(sqErr / N);
+
+        document.getElementById('rmsResultDisplay').innerText = `RMS Residuo Rigid 3D Alignment: ${rms.toFixed(6)} m`;
+        updateProcessingAndTables();
+    }
+
+    function maxEigenvector4x4(A) {
+        const n = 4;
+        const D = A.map(row => row.slice());
+        const V = identityMatrix();
+
+        for (let iter = 0; iter < 100; iter++) {
+            let p = 0, q = 1;
+            let maxOff = Math.abs(D[p][q]);
+
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const a = Math.abs(D[i][j]);
+                    if (a > maxOff) {
+                        maxOff = a;
+                        p = i;
+                        q = j;
+                    }
+                }
+            }
+
+            if (maxOff < 1e-14) break;
+
+            const app = D[p][p];
+            const aqq = D[q][q];
+            const apq = D[p][q];
+
+            const phi = 0.5 * Math.atan2(2 * apq, aqq - app);
+            const c = Math.cos(phi);
+            const s = Math.sin(phi);
+
+            for (let k = 0; k < n; k++) {
+                if (k === p || k === q) continue;
+
+                const dkp = D[k][p];
+                const dkq = D[k][q];
+
+                const newKp = c * dkp - s * dkq;
+                const newKq = s * dkp + c * dkq;
+
+                D[k][p] = D[p][k] = newKp;
+                D[k][q] = D[q][k] = newKq;
+            }
+
+            D[p][p] = c*c*app - 2*s*c*apq + s*s*aqq;
+            D[q][q] = s*s*app + 2*s*c*apq + c*c*aqq;
+            D[p][q] = D[q][p] = 0;
+
+            for (let k = 0; k < n; k++) {
+                const vkp = V[k][p];
+                const vkq = V[k][q];
+                V[k][p] = c * vkp - s * vkq;
+                V[k][q] = s * vkp + c * vkq;
+            }
+        }
+
+        let maxIdx = 0;
+        for (let i = 1; i < n; i++) {
+            if (D[i][i] > D[maxIdx][maxIdx]) maxIdx = i;
+        }
+
+        const v = [V[0][maxIdx], V[1][maxIdx], V[2][maxIdx], V[3][maxIdx]];
+        const norm = Math.hypot(v[0], v[1], v[2], v[3]);
+        return norm > 0 ? v.map(x => x / norm) : [1, 0, 0, 0];
+    }
+
+    function applyCloudCompareMatrix() {
+        if (!document.getElementById('enableBox3').checked) return;
+
+        const rawText = document.getElementById('ccMatrixInput').value.trim();
+        if (!rawText) return alert("Incolla la matrice 4x4 da CloudCompare.");
+
+        const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
+        let M = [];
+        lines.forEach(l => {
+            const r = l.trim().split(/\s+/).map(v => parseFloat(v));
+            if (r.length === 4 && !r.some(isNaN)) M.push(r);
+        });
+
+        if (M.length !== 4) return alert("Formato matrice non valido (richieste 4 righe x 4 colonne).");
+
+        matrixBox3 = M;
+        updateProcessingAndTables();
+    }
+
+    function multiplyMatrices(A, B) {
+        let C = identityMatrix();
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                C[i][j] = 0;
+                for (let k = 0; k < 4; k++) {
+                    C[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+        return C;
+    }
+
+    function updateMatrixDisplay(M) {
+        let str = "";
+        for (let r = 0; r < 4; r++) {
+            str += M[r].map(v => v.toFixed(6).padStart(11)).join(" ") + "\n";
+        }
+        document.getElementById('matrixDisplay').innerText = str.trim();
+    }
+
+    function copyMatrix() {
+        navigator.clipboard.writeText(document.getElementById('matrixDisplay').innerText);
+        alert("📋 Matrice 4x4 copiata negli appunti!");
+    }
+
+    function downloadCSVTab2() {
+        let csv = "Nome_Punto;Classificazione;X_m;Y_m;Z_m;Tipo_Ruolo\n";
+        processedPoints.forEach(p => {
+            csv += `${p.finalName};${p.feature || ''};${p.calcX.toFixed(4)};${p.calcY.toFixed(4)};${p.calcZ.toFixed(4)};${p.isStation ? 'STAZIONE' : 'GCP'}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = "GCP_Elaborati_Scheda2.csv";
+        a.click();
+    }
+
+    // --- SCHEDA 3: CLASSIFICAZIONE ED EXPORT CAD ---
+    function detectDefaultSymbolForLayer(layerName) {
+        const uName = (layerName || "").toUpperCase();
+        if (uName.includes("ALBERO")) return "ALBERO";
+        if (uName.includes("CESPUGLIO") || uName.includes("BUSCH")) return "CESPUGLIO";
+        if (uName.includes("SIEPE")) return "SIEPE";
+        if (uName.includes("FOGNA") || uName.includes("FOGNATURA")) return "FOGNA";
+        if (uName.includes("ACQUEDOTTO") || uName.includes("ACQUA")) return "ACQUEDOTTO";
+        if (uName.includes("POZZETTO") || uName.includes("POZZETTI")) return "POZZETTO";
+        if (uName.includes("TOMBINO TONDO") || uName.includes("TOMBINI")) return "TOMBINO_TONDO";
+        if (uName.includes("QUOTA") || uName.includes("ALTITUDINE") || uName.includes("CAPOSALDO")) return "ALTITUDE";
+        return "POINT";
+    }
+
+    function getTargetLayerForPoint(p, sym) {
+        let featureName = (p.feature || "").trim();
+        if (featureName !== "") return featureName;
+        
+        if (sym === "ALBERO") return "Alberi";
+        if (sym === "CESPUGLIO") return "Cespugli";
+        if (sym === "SIEPE") return "Siepi";
+        if (sym === "FOGNA") return "Fognatura";
+        if (sym === "ACQUEDOTTO") return "Aquedotto";
+        if (sym === "POZZETTO") return "Pozzetti";
+        if (sym === "TOMBINO_TONDO") return "Tombini";
+        return "PUNTI_GENERICI";
+    }
+
+    function renderUnifiedCadTable() {
+        const activeList = processedPoints;
+        const capSel = document.getElementById('caposaldoSelect');
+        const currentCapVal = capSel.value;
+        capSel.innerHTML = '';
+        
+        activeList.forEach((p, idx) => {
+            capSel.innerHTML += `<option value="${idx}">${p.finalName} (Z = ${p.calcZ.toFixed(3)} m)</option>`;
+        });
+        if (currentCapVal && activeList[currentCapVal]) capSel.value = currentCapVal;
+
+        const capIdx = parseInt(capSel.value) || 0;
+        const capZ = activeList[capIdx] ? activeList[capIdx].calcZ : 0;
+
+        const tbody = document.querySelector('#unifiedCadTable tbody');
+        tbody.innerHTML = '';
+
+        activeList.forEach((p, idx) => {
+            const zVal = p.calcZ;
+            const deltaZ = zVal - capZ;
+
+            let featureName = (p.feature || "").trim();
+            if (!pointSymbolTypes[p.finalName]) {
+                pointSymbolTypes[p.finalName] = featureName ? detectDefaultSymbolForLayer(featureName) : "POINT";
+            }
+            
+            const currentSymbol = pointSymbolTypes[p.finalName];
+            const upperFeature = (featureName || getTargetLayerForPoint(p, currentSymbol)).toUpperCase();
+            if (groupClosureState[upperFeature] === undefined) groupClosureState[upperFeature] = false;
+            
+            const isLinear = (currentSymbol === 'LINE' || currentSymbol === 'SIEPE');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${p.finalName}</strong></td>
+                <td>
+                    <input type="text" class="editable-input" value="${featureName}" placeholder="es. muro, colonna, tombino..." 
+                           oninput="updatePointFeatureMemory(${idx}, this.value)" 
+                           onchange="renderUnifiedCadTable()">
+                </td>
+                <td>${p.calcX.toFixed(4)}</td>
+                <td>${p.calcY.toFixed(4)}</td>
+                <td>${zVal.toFixed(4)}</td>
+                <td style="font-weight:700; color:${deltaZ >= 0 ? '#4ade80' : '#fca5a5'};">${deltaZ >= 0 ? '+' : ''}${deltaZ.toFixed(2)} m</td>
+                <td>
+                    <select onchange="pointSymbolTypes['${p.finalName}'] = this.value; renderUnifiedCadTable();" class="editable-input" style="font-weight:600;">
+                        <optgroup label="Simboli Singoli / Nodi">
+                            <option value="POINT" ${currentSymbol === 'POINT' ? 'selected' : ''}>❌ Croce Topografica</option>
+                            <option value="ALTITUDE" ${currentSymbol === 'ALTITUDE' ? 'selected' : ''}>📐 Simbolo Quota Altimetrica</option>
+                            <option value="ALBERO" ${currentSymbol === 'ALBERO' ? 'selected' : ''}>🌳 Chioma Albero</option>
+                            <option value="CESPUGLIO" ${currentSymbol === 'CESPUGLIO' ? 'selected' : ''}>🌿 Cespuglio</option>
+                            <option value="FOGNA" ${currentSymbol === 'FOGNA' ? 'selected' : ''}>🌀 Tombino Fogna</option>
+                            <option value="ACQUEDOTTO" ${currentSymbol === 'ACQUEDOTTO' ? 'selected' : ''}>💧 Tombino Acquedotto</option>
+                            <option value="POZZETTO" ${currentSymbol === 'POZZETTO' ? 'selected' : ''}>⏹️ Pozzetto Quadrato</option>
+                            <option value="TOMBINO_TONDO" ${currentSymbol === 'TOMBINO_TONDO' ? 'selected' : ''}>⭕ Tombino Tondo Generico</option>
+                        </optgroup>
+                        <optgroup label="Tracciati Vettoriali">
+                            <option value="LINE" ${currentSymbol === 'LINE' ? 'selected' : ''}>📈 Polilinea Spezzata / Bordo</option>
+                            <option value="SIEPE" ${currentSymbol === 'SIEPE' ? 'selected' : ''}>🌿 Polilinea Siepe + Ingombro</option>
+                        </optgroup>
+                    </select>
+                </td>
+                <td>
+                    ${!isLinear ? '<span style="color:var(--text-muted); font-size:0.8rem;">N/A (Simbolo Singolo)</span>' : `
+                    <select onchange="groupClosureState['${upperFeature}'] = (this.value === 'YES'); drawPreviewCanvas();" class="editable-input">
+                        <option value="NO" ${!groupClosureState[upperFeature] ? 'selected' : ''}>🔓 Aperta</option>
+                        <option value="YES" ${groupClosureState[upperFeature] ? 'selected' : ''}>🔒 Chiusa</option>
+                    </select>`}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        drawPreviewCanvas();
+    }
+
+    function updatePointFeatureMemory(idx, val) {
+        if (processedPoints[idx]) {
+            processedPoints[idx].feature = val;
+            if (val.trim() !== "") {
+                pointSymbolTypes[processedPoints[idx].finalName] = detectDefaultSymbolForLayer(val);
+            }
+        }
+    }
+
+    function groupPointsByFeature() {
+        const groups = {};
+        processedPoints.forEach(r => {
+            const sym = pointSymbolTypes[r.finalName] || 'POINT';
+            let targetLayer = getTargetLayerForPoint(r, sym);
+            if (!groups[targetLayer]) groups[targetLayer] = [];
+            groups[targetLayer].push(r);
+        });
+        return groups;
+    }
+
+    function downloadExcelCSV() {
+        if (processedPoints.length === 0) return alert("Nessun dato da esportare.");
+        const capIdx = parseInt(document.getElementById('caposaldoSelect').value) || 0;
+        const capZ = processedPoints[capIdx] ? processedPoints[capIdx].calcZ : 0;
+
+        let csv = "Nome_Punto;Classificazione;X_m;Y_m;Z_Assoluta_m;Delta_Z_Caposaldo_m;Simbolo_Selezionato\n";
+        processedPoints.forEach((r) => {
+            const sym = pointSymbolTypes[r.finalName] || "N/A";
+            csv += `${r.finalName};${r.feature || ''};${r.calcX.toFixed(4)};${r.calcY.toFixed(4)};${r.calcZ.toFixed(4)};${(r.calcZ - capZ).toFixed(2)};${sym}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Report_Planimetrico_FieldToFinish.csv';
+        a.click();
+    }
+
+    function computeOffsetPolygon(points, halfWidth, isClosed, is3D) {
+        const n = points.length;
+        if (n < 2) return [];
+
+        let leftOffset = [];
+        let rightOffset = [];
+
+        for (let i = 0; i < n; i++) {
+            let pCurr = points[i];
+            let dirPrev, dirNext;
+
+            if (i > 0) {
+                let dx = pCurr.calcX - points[i - 1].calcX;
+                let dy = pCurr.calcY - points[i - 1].calcY;
+                let len = Math.hypot(dx, dy) || 1;
+                dirPrev = { x: dx / len, y: dy / len };
+            } else if (isClosed) {
+                let dx = pCurr.calcX - points[n - 1].calcX;
+                let dy = pCurr.calcY - points[n - 1].calcY;
+                let len = Math.hypot(dx, dy) || 1;
+                dirPrev = { x: dx / len, y: dy / len };
+            }
+
+            if (i < n - 1) {
+                let dx = points[i + 1].calcX - pCurr.calcX;
+                let dy = points[i + 1].calcY - pCurr.calcY;
+                let len = Math.hypot(dx, dy) || 1;
+                dirNext = { x: dx / len, y: dy / len };
+            } else if (isClosed) {
+                let dx = points[0].calcX - pCurr.calcX;
+                let dy = points[0].calcY - pCurr.calcY;
+                let len = Math.hypot(dx, dy) || 1;
+                dirNext = { x: dx / len, y: dy / len };
+            }
+
+            let normal;
+            if (i === 0 && !isClosed) {
+                normal = { x: -dirNext.y, y: dirNext.x };
+            } else if (i === n - 1 && !isClosed) {
+                normal = { x: -dirPrev.y, y: dirPrev.x };
+            } else {
+                let normPrev = { x: -dirPrev.y, y: dirPrev.x };
+                let normNext = { x: -dirNext.y, y: dirNext.x };
+                let meanNorm = { x: (normPrev.x + normNext.x) / 2, y: (normPrev.y + normNext.y) / 2 };
+                let len = Math.hypot(meanNorm.x, meanNorm.y) || 1;
+                let dot = meanNorm.x * normNext.x + meanNorm.y * normNext.y;
+                let scale = 1 / (dot || 1);
+                normal = { x: (meanNorm.x / len) * scale, y: (meanNorm.y / len) * scale };
+            }
+
+            let zVal = is3D ? pCurr.calcZ : 0.0;
+            leftOffset.push({ x: pCurr.calcX + normal.x * halfWidth, y: pCurr.calcY + normal.y * halfWidth, z: zVal });
+            rightOffset.push({ x: pCurr.calcX - normal.x * halfWidth, y: pCurr.calcY - normal.y * halfWidth, z: zVal });
+        }
+
+        if (isClosed) {
+            return { left: leftOffset, right: rightOffset, isLoop: true };
+        } else {
+            let combined = [...leftOffset, ...rightOffset.reverse()];
+            return { points: combined, isLoop: false };
+        }
+    }
+
+    function downloadVectorDXF() {
+        const groups = groupPointsByFeature();
+        if (processedPoints.length === 0) return alert("Nessun dato da esportare.");
+
+        const is3D = document.getElementById('dxfDimensionMode').value === '3D';
+        const capIdx = parseInt(document.getElementById('caposaldoSelect').value) || 0;
+        const capZ = processedPoints[capIdx] ? processedPoints[capIdx].calcZ : 0;
+
+        // HEADER CON ENCODING ANSI_1252 / UTF-8 PER CARATTERI SPECIALI
+        let dxf = `0\nSECTION\n2\nHEADER\n9\n$DWGCODEPAGE\n3\nANSI_1252\n0\nENDSEC\n`;
+        
+        // TABELLA DEGLI STILI DI TESTO DXF (Impostato Arial Narrow 'arialn.ttf' come STANDARD)
+        dxf += `0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nSTYLE\n70\n1\n`;
+        dxf += `0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n3\narialn.ttf\n4\n\n`;
+        dxf += `0\nENDTAB\n0\nENDSEC\n`;
+
+        // SEZIONE BLOCCHI CAD (Definizione dei Blocchi CHIOMA_ALBERO e CESPUGLIO)
+        dxf += `0\nSECTION\n2\nBLOCKS\n`;
+        
+        // Blocco 1: CHIOMA_ALBERO
+        dxf += `0\nBLOCK\n8\n0\n2\nCHIOMA_ALBERO\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+        let unitScaleTree = 1.0 / 236.608;
+        treeSymbolArcs.forEach(arc => {
+            let arcCx = arc.cx * unitScaleTree;
+            let arcCy = arc.cy * unitScaleTree;
+            let arcR = arc.r * unitScaleTree;
+            dxf += `0\nARC\n8\n0\n10\n${arcCx}\n20\n${arcCy}\n30\n0.0\n40\n${arcR}\n50\n${arc.start}\n51\n${arc.end}\n`;
+        });
+        let circleR = 11.21376 * unitScaleTree;
+        dxf += `0\nCIRCLE\n8\n0\n10\n0.0\n20\n0.0\n30\n0.0\n40\n${circleR}\n`;
+        dxf += `0\nLINE\n8\n0\n10\n0.0\n20\n${circleR}\n30\n0.0\n11\n0.0\n21\n${-circleR}\n31\n0.0\n`;
+        dxf += `0\nLINE\n8\n0\n10\n${circleR}\n20\n0.0\n30\n0.0\n11\n${-circleR}\n21\n0.0\n31\n0.0\n`;
+        dxf += `0\nENDBLK\n8\n0\n`;
+
+        // Blocco 2: CESPUGLIO (Struttura a raggiera vettoriale dal file DXF)
+        dxf += `0\nBLOCK\n8\n0\n2\nCESPUGLIO\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+        bushSymbolLines.forEach(line => {
+            dxf += `0\nLINE\n8\n0\n10\n${line.x0}\n20\n${line.y0}\n30\n0.0\n11\n${line.x1}\n21\n${line.y1}\n31\n0.0\n`;
+        });
+        dxf += `0\nENDBLK\n8\n0\n`;
+
+        dxf += `0\nENDSEC\n`;
+
+        // SEZIONE ENTITA'
+        dxf += `0\nSECTION\n2\nENTITIES\n`;
+
+        Object.keys(groups).forEach(layer => {
+            const pts = groups[layer];
+
+            pts.forEach(p => {
+                const sym = pointSymbolTypes[p.finalName] || 'POINT';
+                const px = p.calcX, py = p.calcY;
+                const pz = is3D ? p.calcZ : 0.0;
+                
+                const deltaZ = p.calcZ - capZ;
+                const isCaposaldo = (p.finalName === processedPoints[capIdx].finalName);
+                
+                // ESCAPE STANDARD PER SIMBOLO DELTA IN AUTOCAD/GSTARCAD (\U+0394)
+                const dZStr = isCaposaldo ? "0.00m" : `\\U+0394Z: ${(deltaZ >= 0 ? '+' : '') + deltaZ.toFixed(2)}m`;
+
+                // Testi etichetta nome e Delta Z con Stile STANDARD (Arial Narrow)
+                dxf += `0\nTEXT\n8\n${layer}_TESTI\n7\nSTANDARD\n10\n${px + 0.3}\n20\n${py + 0.20}\n30\n${pz}\n40\n0.22\n1\n${p.finalName}\n`;
+                dxf += `0\nTEXT\n8\n${layer}_TESTI\n7\nSTANDARD\n10\n${px + 0.3}\n20\n${py - 0.15}\n30\n${pz}\n40\n0.18\n1\n${dZStr}\n`;
+
+                if (sym === 'POINT' || sym === 'LINE' || sym === 'SIEPE' || sym === 'ALTITUDE') {
+                    const c = 0.20;
+                    dxf += `0\nLINE\n8\n${layer}\n10\n${px-c}\n20\n${py}\n30\n${pz}\n11\n${px+c}\n21\n${py}\n31\n${pz}\n`;
+                    dxf += `0\nLINE\n8\n${layer}\n10\n${px}\n20\n${py-c}\n30\n${pz}\n11\n${px}\n21\n${py+c}\n31\n${pz}\n`;
+                } 
+                else if (sym === 'FOGNA' || sym === 'ACQUEDOTTO' || sym === 'TOMBINO_TONDO') {
+                    let r = 0.20;
+                    if (sym === 'FOGNA') r = (parseFloat(document.getElementById('tombinoFognaInput').value) || 0.60) / 2.0;
+                    if (sym === 'ACQUEDOTTO') r = (parseFloat(document.getElementById('tombinoAcquedottoInput').value) || 0.40) / 2.0;
+                    if (sym === 'TOMBINO_TONDO') r = (parseFloat(document.getElementById('tombinoTondoInput').value) || 0.40) / 2.0;
+                    dxf += `0\nCIRCLE\n8\n${layer}\n10\n${px}\n20\n${py}\n30\n${pz}\n40\n${r}\n`;
+                }
+                else if (sym === 'POZZETTO') {
+                    let side = parseFloat(document.getElementById('pozzettoQuadratoInput').value) || 0.40;
+                    let h = side / 2.0;
+                    dxf += `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                    dxf += `0\nVERTEX\n8\n${layer}\n10\n${px - h}\n20\n${py - h}\n30\n${pz}\n`;
+                    dxf += `0\nVERTEX\n8\n${layer}\n10\n${px + h}\n20\n${py - h}\n30\n${pz}\n`;
+                    dxf += `0\nVERTEX\n8\n${layer}\n10\n${px + h}\n20\n${py + h}\n30\n${pz}\n`;
+                    dxf += `0\nVERTEX\n8\n${layer}\n10\n${px - h}\n20\n${py + h}\n30\n${pz}\n`;
+                    dxf += `0\nSEQEND\n`;
+                }
+                else if (sym === 'ALBERO') {
+                    let treeDiam = parseFloat(document.getElementById('treeRadiusInput').value) || 1.50;
+                    dxf += `0\nINSERT\n8\n${layer}\n2\nCHIOMA_ALBERO\n10\n${px}\n20\n${py}\n30\n${pz}\n41\n${treeDiam}\n42\n${treeDiam}\n43\n${treeDiam}\n`;
+                }
+                else if (sym === 'CESPUGLIO') {
+                    let bushDiam = parseFloat(document.getElementById('treeRadiusInput').value) || 1.50;
+                    dxf += `0\nINSERT\n8\n${layer}\n2\nCESPUGLIO\n10\n${px}\n20\n${py}\n30\n${pz}\n41\n${bushDiam}\n42\n${bushDiam}\n43\n${bushDiam}\n`;
+                }
+            });
+
+            // Polilinea Spezzata
+            const linePts = pts.filter(p => pointSymbolTypes[p.finalName] === 'LINE');
+            if (linePts.length >= 2) {
+                const upperLayerName = layer.toUpperCase();
+                const isClosed = !!groupClosureState[upperLayerName];
+                dxf += `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n${isClosed ? 1 : 0}\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                linePts.forEach(p => { 
+                    const pz = is3D ? p.calcZ : 0.0;
+                    dxf += `0\nVERTEX\n8\n${layer}\n10\n${p.calcX}\n20\n${p.calcY}\n30\n${pz}\n`; 
+                });
+                dxf += `0\nSEQEND\n`;
+            }
+
+            // Polilinea Siepe
+            const hedgePts = pts.filter(p => pointSymbolTypes[p.finalName] === 'SIEPE');
+            if (hedgePts.length >= 2) {
+                const upperLayerName = layer.toUpperCase();
+                const isClosed = !!groupClosureState[upperLayerName];
+                const hedgeWidth = parseFloat(document.getElementById('hedgeWidthInput').value) || 0.60;
+                const halfW = hedgeWidth / 2.0;
+
+                dxf += `0\nPOLYLINE\n8\n${layer}_ASSE\n66\n1\n70\n${isClosed ? 1 : 0}\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                hedgePts.forEach(p => {
+                    const pz = is3D ? p.calcZ : 0.0;
+                    dxf += `0\nVERTEX\n8\n${layer}_ASSE\n10\n${p.calcX}\n20\n${p.calcY}\n30\n${pz}\n`;
+                });
+                dxf += `0\nSEQEND\n`;
+
+                const offsetResult = computeOffsetPolygon(hedgePts, halfW, isClosed, is3D);
+                if (offsetResult.isLoop) {
+                    [offsetResult.left, offsetResult.right].forEach(ring => {
+                        dxf += `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                        ring.forEach(pt => { dxf += `0\nVERTEX\n8\n${layer}\n10\n${pt.x}\n20\n${pt.y}\n30\n${pt.z}\n`; });
+                        dxf += `0\nSEQEND\n`;
+                    });
+                } else if (offsetResult.points) {
+                    dxf += `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                    offsetResult.points.forEach(pt => { dxf += `0\nVERTEX\n8\n${layer}\n10\n${pt.x}\n20\n${pt.y}\n30\n${pt.z}\n`; });
+                    dxf += `0\nSEQEND\n`;
+                }
+            }
+        });
+
+        dxf += `0\nENDSEC\n0\nEOF\n`;
+        const blob = new Blob([dxf], { type: 'application/dxf;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Disegno_Vettoriale_CAD.dxf';
+        a.click();
+    }
+
+    function saveProjectFile() {
+        const tombinoTondoInput = document.getElementById('tombinoTondoInput') ? document.getElementById('tombinoTondoInput').value : "0.40";
+        const state = { rawGcpList, processedPoints, targetPoints, pointSymbolTypes, groupClosureState, tombinoTondoInput };
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Progetto_Eagle_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+    }
+
+    function loadProjectFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const s = JSON.parse(e.target.result);
+                rawGcpList = s.rawGcpList || [];
+                processedPoints = s.processedPoints || [];
+                targetPoints = s.targetPoints || [];
+                pointSymbolTypes = s.pointSymbolTypes || {};
+                groupClosureState = s.groupClosureState || {};
+                if (s.tombinoTondoInput && document.getElementById('tombinoTondoInput')) {
+                    document.getElementById('tombinoTondoInput').value = s.tombinoTondoInput;
+                }
+                openTab('tabElabPura');
+                resetCanvasView();
+                alert("📁 Progetto caricato con successo!");
+            } catch (err) { alert("❌ Errore file JSON: " + err.message); }
+        };
+        reader.readAsText(file);
+    }
+
+    // ================= MODULO VIRTUAL TOUR / PCD PREVIEW =================
+    const TOUR_IMG_RE = /^(\d+(?:\.\d+)?)\.(?:png|jpe?g)$/i;
+    function refreshTourFilesFromProject() {
+        tourFiles = projectFiles.slice();
+        tourImages = [];
+        tourImagesInfo = {expected:'', mode:'none', inFolder:0, actual:''};
+        const folderEl = document.getElementById('tourFolderStatus'), statusEl = document.getElementById('tourStatus');
+        if (!projectFiles.length) {
+            if (folderEl) { folderEl.textContent = 'Seleziona prima la cartella progetto nella scheda 1.'; folderEl.className = 'status-badge left'; }
+            if (statusEl) statusEl.textContent = 'In attesa dei file di progetto.';
+            return;
+        }
+        // Radice progetto = cartella che contiene la traiettoria (o i control points); altrimenti la cartella selezionata
+        const anchor = trjFile || gcpFile || projectFiles[0];
+        const ap = relPathOf(anchor);
+        const rootPrefix = ap.includes('/') ? ap.slice(0, ap.lastIndexOf('/') + 1) : '';
+        const sub = 'shading/colmap/images/';
+        const lc = f => relPathOf(f).toLowerCase();
+        let list = projectFiles.filter(f => lc(f).startsWith(rootPrefix.toLowerCase() + sub));
+        let mode = list.length ? 'strict' : 'none';
+        if (!list.length) {            // fallback: cartella progetto selezionata a un livello diverso
+            list = projectFiles.filter(f => ('/' + lc(f)).includes('/' + sub));
+            if (list.length) mode = 'fallback';
+        }
+        let actual = '';
+        if (list.length) { const p = relPathOf(list[0]); actual = p.slice(0, p.toLowerCase().indexOf(sub) + sub.length - 1); }
+        tourImages = list.map(f => { const m = f.name.match(TOUR_IMG_RE); return m ? {file:f, ts:Number(m[1]), name:f.name, path:relPathOf(f)} : null; })
+                         .filter(Boolean).sort((a, b) => a.ts - b.ts);
+        tourImagesInfo = {expected: rootPrefix + 'shading/Colmap/images', mode, inFolder: list.length, actual};
+
+        const parts = [];
+        parts.push(trjFile ? `TRJ ✔ ${relPathOf(trjFile)}` : 'TRJ ✖ non trovato');
+        parts.push(gcpFile ? `Control points ✔ ${relPathOf(gcpFile)}` : 'Control points ✖ non trovati');
+        if (mode === 'none') parts.push(`Immagini ✖ cartella ${tourImagesInfo.expected} non trovata`);
+        else if (!tourImages.length) parts.push(`Immagini ✖ ${list.length} file in ${actual} ma nessuno con nome timestamp (es. 1700000000.123456.png)`);
+        else if (mode === 'fallback') parts.push(`Immagini ⚠ ${tourImages.length} PNG in ${actual} (percorso diverso da ${tourImagesInfo.expected})`);
+        else parts.push(`Immagini ✔ ${tourImages.length} PNG in ${actual}`);
+        if (folderEl) {
+            folderEl.textContent = parts.join('  ·  ');
+            folderEl.className = 'status-badge left ' + ((trjFile && gcpFile && tourImages.length) ? 'loaded' : 'warn');
+        }
+        if (statusEl) statusEl.textContent = `${tourImages.length} fotografie individuate nella cartella progetto.`;
+    }
+    function parseTrajectoryWithQuaternion(text){
+        const rows=[];
+        for(const line of text.split(/\r?\n/)){
+            const t=line.trim();if(!t||t.startsWith('#'))continue;
+            const a=t.split(/\s+/).map(Number);
+            if(a.length<8||!a.slice(0,8).every(Number.isFinite))continue;
+            const n=Math.hypot(a[4],a[5],a[6],a[7])||1;
+            rows.push({ts:a[0],tx:a[1],ty:a[2],tz:a[3],qx:a[4]/n,qy:a[5]/n,qz:a[6]/n,qw:a[7]/n});
+        }
+        rows.sort((a,b)=>a.ts-b.ts);
+        return rows;
+    }
+    function nearestTrajectoryIndex(rows, ts) {
+        let lo=0,hi=rows.length-1;
+        while(lo<hi){const mid=(lo+hi)>>1;if(rows[mid].ts<ts)lo=mid+1;else hi=mid;}
+        if(lo>0 && Math.abs(rows[lo-1].ts-ts)<Math.abs(rows[lo].ts-ts)) return lo-1;
+        return lo;
+    }
+    function qNormalize(q){const n=Math.hypot(q.qx,q.qy,q.qz,q.qw)||1;return {x:q.qx/n,y:q.qy/n,z:q.qz/n,w:q.qw/n};}
+    function qAngleDeg(a,b){const qa=qNormalize(a),qb=qNormalize(b);const d=Math.min(1,Math.abs(qa.x*qb.x+qa.y*qb.y+qa.z*qb.z+qa.w*qb.w));return 2*Math.acos(d)*180/Math.PI;}
+    function findForwardRotation(rows,startIdx,minRotation,tolerance){
+        const start=rows[startIdx]; let cumulative=0,peak=0,returnIdx=-1,peakAngle=0;
+        for(let i=startIdx+1;i<rows.length;i++){
+            cumulative += qAngleDeg(rows[i-1],rows[i]);
+            const fromStart=qAngleDeg(start,rows[i]);
+            if(fromStart>peakAngle) peakAngle=fromStart;
+            if(cumulative>=minRotation && fromStart<=tolerance){returnIdx=i;break;}
+            // Evita scansioni smisurate: oltre 3 rotazioni senza ritorno, considera non rilevata.
+            if(cumulative>1080) break;
+        }
+        if(returnIdx<0) return null;
+        // Il campione di ritorno definisce la fine; la somma cumulativa è la rotazione realmente percorsa.
+        return {startIdx,endIdx:returnIdx,startTs:start.ts,endTs:rows[returnIdx].ts,duration:rows[returnIdx].ts-start.ts,cumulative,peakAngle};
+    }
+    async function analyzeTourStations(){
+        if(!trjFile || !gcpFile){alert('Seleziona nella scheda 1 la cartella progetto contenente la traiettoria (recalculate_trj.txt) e i control points.');return;}
+        if(tourAnalyzing)return;tourAnalyzing=true;
+        const status=document.getElementById('tourStatus');status.textContent='Lettura traiettoria e ricerca delle rotazioni…';
+        try{
+            const [trjTxt,gcpTxt]=await Promise.all([trjFile.text(),gcpFile.text()]);
+            const rows=parseTrajectoryWithQuaternion(trjTxt), timestamps=parseGCP(gcpTxt); tourTrajectoryRows=rows;
+            if(!rows.length || !timestamps.length) throw new Error('Traiettoria o controlpoint privi di dati validi.');
+            const minRot=Number(document.getElementById('tourMinRotation').value)||330;
+            const tol=Number(document.getElementById('tourReturnTolerance').value)||5;
+            tourStations=timestamps.map((ts,i)=>{
+                const idx=nearestTrajectoryIndex(rows,ts), hit=rows[idx];
+                const rot=findForwardRotation(rows,idx,minRot,tol);
+                if(!rot) return {id:i+1,gcpTs:ts,matchTs:hit.ts,matchDelta:hit.ts-ts,x:hit.tx,y:hit.ty,z:hit.tz,baseHeading:cameraHeadingDeg(hit),rotation:null,photos:[],coverage:0,selectedNames:[]};
+                const photos=tourImages.filter(im=>im.ts>=rot.startTs && im.ts<=rot.endTs).map(im=>{const pi=nearestTrajectoryIndex(rows,im.ts);return {...im,heading:cameraHeadingDeg(rows[pi])};});
+                // Copertura preliminare: somma delle porzioni di FOV, limitata a 360°.
+                const fov=Number(document.getElementById('tourCameraFov').value)||180;
+                const coverage=Math.min(360,photos.length*fov*0.72);
+                return {id:i+1,gcpTs:ts,matchTs:hit.ts,matchDelta:hit.ts-ts,x:hit.tx,y:hit.ty,z:hit.tz,baseHeading:cameraHeadingDeg(rows[rot.startIdx]),rotation:rot,photos,coverage,selectedNames:[]};
+            });
+            activeTourStationIndex=Math.max(0,tourStations.findIndex(s=>s.rotation));autoSelectAllStations();renderTourStationsTable();selectTourStation(activeTourStationIndex);
+            let warn='';
+            if(!tourImages.length) warn=' ⚠ Nessuna immagine in '+(tourImagesInfo.expected||'shading/Colmap/images')+'.';
+            else if(tourImages[tourImages.length-1].ts<rows[0].ts||tourImages[0].ts>rows[rows.length-1].ts) warn=' ⚠ I timestamp delle immagini non cadono nel range della traiettoria (verificare unità/offset).';
+            status.textContent=`Analisi completata: ${rows.length.toLocaleString('it-IT')} campioni traiettoria · ${timestamps.length} GCP · ${tourImages.length} immagini · ${tourStations.filter(s=>s.rotation).length} rotazioni riconosciute.`+warn;
+        }catch(e){console.error(e);status.textContent='Errore: '+e.message;}
+        finally{tourAnalyzing=false;}
+    }
+    function renderTourStationsTable(){
+        const body=document.querySelector('#tourStationsTable tbody');if(!body)return;
+        if(!tourStations.length){body.innerHTML='<tr><td colspan="9">Nessuna analisi disponibile.</td></tr>';return;}
+        body.innerHTML=tourStations.map((s,i)=>{const r=s.rotation,sel=(s.selectedNames||[]).length;return `<tr><td><strong>GCP_${s.id}</strong></td><td>${r?r.startTs.toFixed(3):'—'}</td><td>${r?r.endTs.toFixed(3):'—'}</td><td>${r?r.duration.toFixed(2)+' s':'Non rilevata'}</td><td>${r?r.cumulative.toFixed(1)+'°':'—'}</td><td>${s.photos.length}</td><td>${sel}</td><td>${r?(s.coverage||0).toFixed(0)+'°':'—'}</td><td><button class="btn-project" ${!r?'disabled':''} onclick="selectTourStation(${i})">Apri / seleziona</button></td></tr>`;}).join('');
+    }
+    function selectedTourStation(){return tourStations[activeTourStationIndex]||tourStations.find(s=>s.rotation);}
+    function selectTourStation(i){activeTourStationIndex=i;const st=tourStations[i];selectedTourPhotoNames=new Set(st?.selectedNames?.length?st.selectedNames:(st?.photos||[]).map(p=>p.name));renderTourStationsTable();renderTourPhotoGrid();}
+    function renderTourPhotoGrid(){
+        const st=selectedTourStation(),grid=document.getElementById('tourPhotoGrid'),summary=document.getElementById('tourPhotoSummary');if(!st||!grid)return;
+        if(!st.photos.length){grid.innerHTML='<p>Nessuna fotografia nell’intervallo temporale rilevato.</p>';summary.textContent='Nessuna fotografia associata alla stazione.';return;}
+        const selected=st.photos.filter(p=>selectedTourPhotoNames.has(p.name));
+        summary.textContent=`GCP_${st.id} · ${selected.length}/${st.photos.length} fotografie selezionate${selected.length===4?' · selezione principale completa':''}`;
+        grid.innerHTML=st.photos.map((p,i)=>`<label style="display:block;background:var(--card-inner);border:1px solid ${selectedTourPhotoNames.has(p.name)?'var(--cyan)':'var(--border)'};border-radius:8px;padding:7px;cursor:pointer;"><img data-photo-index="${i}" loading="lazy" decoding="async" style="width:100%;height:105px;object-fit:cover;background:#111;border-radius:5px;" alt="${p.name}"><div style="display:flex;gap:6px;align-items:center;margin-top:6px;"><input type="checkbox" ${selectedTourPhotoNames.has(p.name)?'checked':''} onchange="toggleTourPhoto('${p.name}',this.checked)"><span style="font-size:11px;overflow-wrap:anywhere;">${p.name}</span></div><div style="font-size:11px;color:var(--text-muted);">Azimut ${Number(p.heading||0).toFixed(1)}°</div></label>`).join('');
+        grid.querySelectorAll('img[data-photo-index]').forEach(img=>{const p=st.photos[Number(img.dataset.photoIndex)],url=URL.createObjectURL(p.file);img.src=url;img.onload=()=>URL.revokeObjectURL(url);});
+    }
+    function toggleTourPhoto(name,checked){if(checked)selectedTourPhotoNames.add(name);else selectedTourPhotoNames.delete(name);const st=selectedTourStation();if(st)st.selectedNames=[...selectedTourPhotoNames];renderTourPhotoGrid();renderTourStationsTable();}
+    function selectAllStationPhotos(flag){const st=selectedTourStation();if(!st)return;selectedTourPhotoNames=new Set(flag?st.photos.map(p=>p.name):[]);st.selectedNames=[...selectedTourPhotoNames];renderTourPhotoGrid();renderTourStationsTable();}
+    function circularDiff(a,b){return Math.abs(((a-b+540)%360)-180);}
+    function autoSelectStationPhotos(silent){
+        const st=selectedTourStation();if(!st||!st.photos.length)return;
+        const sorted=st.photos.slice().sort((a,b)=>a.ts-b.ts);const base=Number.isFinite(st.baseHeading)?st.baseHeading:(sorted[0].heading||0),chosen=[];
+        for(let k=0;k<4;k++){
+            const target=(base+k*90)%360;let best=null,bestD=Infinity;
+            for(const p of sorted){if(chosen.some(x=>x.name===p.name))continue;const d=circularDiff(p.heading||0,target);if(d<bestD){bestD=d;best=p;}}
+            if(best)chosen.push(best);
+        }
+        selectedTourPhotoNames=new Set(chosen.map(p=>p.name));st.selectedNames=[...selectedTourPhotoNames];
+        const maxError=chosen.length===4?Math.max(...chosen.map((p,i)=>circularDiff(p.heading||0,(base+i*90)%360))):180;st.coverage=chosen.length===4?360:0;
+        if(!silent){renderTourPhotoGrid();renderTourStationsTable();}
+        const summary=silent?null:document.getElementById('tourPhotoSummary');if(summary)summary.textContent+=chosen.length<4?' · Attenzione: meno di 4 immagini disponibili.':(maxError>45?' · Copertura da verificare: scarto massimo '+maxError.toFixed(1)+'° dai 4 assi.':' · 4 direzioni selezionate a intervalli nominali di 90°.');
+    }
+    function autoSelectAllStations(){
+        const old=activeTourStationIndex;
+        tourStations.forEach((st,i)=>{if(!st.rotation||!st.photos.length)return;activeTourStationIndex=i;selectedTourPhotoNames=new Set();autoSelectStationPhotos(true);});
+        activeTourStationIndex=old;selectTourStation(old);renderTourStationsTable();
+    }
+    let galleryPhotoIndex=0, galleryUrls=[], galleryDragOffset=0, galleryMapHover=null, galleryMapHits=[];
+    const GALLERY_GAP=28, GALLERY_FILL=0.78;
+    function galleryStations(){return tourStations.filter(s=>s.rotation&&(s.selectedNames||[]).length);}
+    function galleryCurrentStation(){return tourStations[activeTourStationIndex]||galleryStations()[0];}
+    function openStationGallery(){
+        const valid=galleryStations();if(!valid.length){alert('Esegui prima l’analisi e seleziona le fotografie delle stazioni.');return;}
+        const idx=valid.findIndex(s=>s.id===selectedTourStation()?.id);activeTourStationIndex=idx>=0?tourStations.indexOf(valid[idx]):tourStations.indexOf(valid[0]);galleryPhotoIndex=0;
+        Object.assign(galleryMapView,{k:1,tx:0,ty:0,sid:null});galleryMapHover=null;
+        document.getElementById('stationGalleryOverlay').classList.add('active');document.body.style.overflow='hidden';renderStationGallery();
+    }
+    function closeStationGallery(){
+        document.getElementById('stationGalleryOverlay').classList.remove('active');document.body.style.overflow='';
+        galleryRevokeUrls();const t=document.getElementById('galleryTrack');if(t)t.innerHTML='';
+    }
+    function gallerySelectedPhotos(st){return (st?.photos||[]).filter(p=>(st.selectedNames||[]).includes(p.name));}
+    function galleryRevokeUrls(){galleryUrls.forEach(u=>u&&URL.revokeObjectURL(u));galleryUrls=[];}
+    function galleryUrl(i){const ph=gallerySelectedPhotos(galleryCurrentStation())[i];if(!ph)return '';if(!galleryUrls[i])galleryUrls[i]=URL.createObjectURL(ph.file);return galleryUrls[i];}
+
+    // ---- Carosello: le foto sono affiancate in un nastro, quella attiva è centrata e ai lati si vede un pezzo di precedente/successiva ----
+    function galleryBuildTrack(photos){
+        const t=document.getElementById('galleryTrack');galleryRevokeUrls();t.innerHTML='';
+        photos.forEach(p=>{
+            const s=document.createElement('div');s.className='gallery-slide';
+            const im=document.createElement('img');im.alt=p.name;im.draggable=false;
+            im.addEventListener('load',()=>{const ar=im.naturalWidth/im.naturalHeight;if(!p.ar||Math.abs(p.ar-ar)>0.01){p.ar=ar;galleryLayout(true);}});
+            s.appendChild(im);t.appendChild(s);
+        });
+    }
+    function galleryEnsureSrc(){
+        const sl=document.getElementById('galleryTrack').children;
+        for(let i=Math.max(0,galleryPhotoIndex-2);i<=Math.min(sl.length-1,galleryPhotoIndex+2);i++){const im=sl[i].firstChild;if(!im.getAttribute('src'))im.src=galleryUrl(i);}
+    }
+    function galleryLayout(instant){
+        const stage=document.getElementById('galleryStage'),W=stage.clientWidth,H=stage.clientHeight;if(!W||!H)return;
+        const photos=gallerySelectedPhotos(galleryCurrentStation()),sl=document.getElementById('galleryTrack').children,tr=document.getElementById('galleryTrack');
+        if(!photos.length||sl.length!==photos.length)return;
+        const ref=(photos.find(p=>p.ar)||{}).ar||4/3;let x=0;const cx=[];
+        photos.forEach((p,i)=>{const ar=p.ar||ref,w=Math.min(W*GALLERY_FILL,H*0.94*ar),h=w/ar;sl[i].style.width=w+'px';sl[i].style.height=h+'px';sl[i].style.marginRight=GALLERY_GAP+'px';cx.push(x+w/2);x+=w+GALLERY_GAP;});
+        const tx=W/2-cx[galleryPhotoIndex]+galleryDragOffset;
+        if(instant)tr.style.transition='none';
+        tr.style.transform='translateX('+tx+'px)';
+        if(instant){void tr.offsetWidth;tr.style.transition='';}
+        for(let i=0;i<sl.length;i++)sl[i].classList.toggle('active',i===galleryPhotoIndex);
+        galleryEnsureSrc();galleryApplyPhoto();
+    }
+    function galleryMeta(){
+        const st=galleryCurrentStation(),photos=gallerySelectedPhotos(st),p=photos[galleryPhotoIndex];if(!st||!p)return;
+        document.getElementById('galleryPhotoCounter').textContent=`Foto ${galleryPhotoIndex+1} / ${photos.length}`;
+        document.getElementById('galleryPhotoName').textContent=p.name;
+        document.querySelectorAll('#galleryThumbs .gallery-thumb').forEach((b,i)=>b.classList.toggle('active',i===galleryPhotoIndex));
+        const v=galleryStations(),ix=v.findIndex(x=>x.id===st.id);
+        document.getElementById('galleryPrevStation').disabled=ix<=0;document.getElementById('galleryNextStation').disabled=ix>=v.length-1;
+    }
+    function renderStationGallery(){
+        const st=galleryCurrentStation(),photos=gallerySelectedPhotos(st);if(!st||!photos.length)return;
+        galleryPhotoIndex=Math.max(0,Math.min(galleryPhotoIndex,photos.length-1));
+        Object.assign(galleryPhotoView,{k:1,tx:0,ty:0});galleryDragOffset=0;
+        document.getElementById('galleryStationTitle').textContent=`STAZIONE GCP_${st.id}`;
+        galleryBuildTrack(photos);
+        const thumbs=document.getElementById('galleryThumbs');
+        thumbs.innerHTML=photos.map((ph,i)=>`<button class="gallery-thumb" onclick="galleryGoPhoto(${i})" title="${ph.name}"><img data-idx="${i}" alt="Foto ${i+1}" loading="lazy" decoding="async"></button>`).join('');
+        thumbs.querySelectorAll('img').forEach(el=>{el.src=galleryUrl(Number(el.dataset.idx));});
+        galleryMeta();galleryLayout(true);drawGalleryTrack(st);
+    }
+    function galleryGoPhoto(i){
+        const n=gallerySelectedPhotos(galleryCurrentStation()).length;if(!n)return;
+        galleryPhotoIndex=((i%n)+n)%n;Object.assign(galleryPhotoView,{k:1,tx:0,ty:0});galleryDragOffset=0;galleryMeta();galleryLayout(false);
+    }
+    function galleryStep(d){const n=gallerySelectedPhotos(galleryCurrentStation()).length,j=galleryPhotoIndex+d;if(j<0||j>=n){galleryLayout(false);return;}galleryGoPhoto(j);}
+    function galleryPrevPhoto(){galleryGoPhoto(galleryPhotoIndex-1);}
+    function galleryNextPhoto(){galleryGoPhoto(galleryPhotoIndex+1);}
+    function galleryGoStation(id){const i=tourStations.findIndex(s=>s.id===id);if(i<0||i===activeTourStationIndex)return;activeTourStationIndex=i;galleryPhotoIndex=0;renderStationGallery();}
+    function galleryPrevStation(){const v=galleryStations(),i=v.findIndex(s=>s.id===galleryCurrentStation()?.id);if(i>0){activeTourStationIndex=tourStations.indexOf(v[i-1]);galleryPhotoIndex=0;renderStationGallery();}}
+    function galleryNextStation(){const v=galleryStations(),i=v.findIndex(s=>s.id===galleryCurrentStation()?.id);if(i>=0&&i<v.length-1){activeTourStationIndex=tourStations.indexOf(v[i+1]);galleryPhotoIndex=0;renderStationGallery();}}
+
+    // ---- Zoom / pan: rotella = zoom sul cursore, trascinamento = sposta, doppio clic = reset ----
+    const galleryPhotoView={k:1,tx:0,ty:0}, galleryMapView={k:1,tx:0,ty:0,sid:null};
+    function galleryApplyPhoto(){
+        const stage=document.getElementById('galleryStage'),sl=document.getElementById('galleryTrack').children,v=galleryPhotoView,a=sl[galleryPhotoIndex];
+        if(v.k<=1.001){v.k=1;v.tx=0;v.ty=0;}
+        if(a){const mx=Math.max(0,(a.offsetWidth*v.k-stage.clientWidth)/2),my=Math.max(0,(a.offsetHeight*v.k-stage.clientHeight)/2);v.tx=Math.max(-mx,Math.min(mx,v.tx));v.ty=Math.max(-my,Math.min(my,v.ty));}
+        for(let i=0;i<sl.length;i++)sl[i].firstChild.style.transform=i===galleryPhotoIndex?'translate('+v.tx+'px,'+v.ty+'px) scale('+v.k+')':'';
+        stage.classList.toggle('zoomed',v.k>1);
+        document.getElementById('galleryZoomBadge').textContent='🔍 '+Math.round(v.k*100)+'%';
+    }
+    function galleryResetPhotoZoom(){Object.assign(galleryPhotoView,{k:1,tx:0,ty:0});galleryApplyPhoto();}
+    // Zoom mantenendo fermo il punto sotto il cursore (origine = centro dell'elemento)
+    function galleryZoomView(v,el,cx,cy,f,maxK){
+        const r=el.getBoundingClientRect(),px=cx-r.left-r.width/2,py=cy-r.top-r.height/2,nk=Math.max(1,Math.min(maxK,v.k*f)),g=nk/v.k;
+        v.tx=px-g*(px-v.tx);v.ty=py-g*(py-v.ty);v.k=nk;
+    }
+    function galleryDrag(el,cls,fn,endFn,clickFn){
+        let d=null,moved=0;
+        el.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;d={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY};moved=0;el.setPointerCapture(e.pointerId);});
+        el.addEventListener('pointermove',e=>{if(!d)return;moved=Math.max(moved,Math.hypot(e.clientX-d.sx,e.clientY-d.sy));if(moved>3)el.classList.add(cls);if(moved>3)fn(e.clientX-d.x,e.clientY-d.y);d.x=e.clientX;d.y=e.clientY;});
+        const end=e=>{if(!d)return;const was=moved;d=null;el.classList.remove(cls);if(endFn)endFn(was>3);if(was<=3&&clickFn&&e.type==='pointerup')clickFn(e);};
+        el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+    }
+    function galleryHit(px,py,rad){let best=null,bd=rad;galleryMapHits.forEach(h=>{const d=Math.hypot(h.x-px,h.y-py);if(d<=bd){bd=d;best=h.id;}});return best;}
+    function drawGalleryTrack(active){
+        const c=document.getElementById('galleryTrackMap');if(!c)return;
+        const dpr=window.devicePixelRatio||1,r=c.getBoundingClientRect(),W=r.width,H=r.height;
+        if(W<20||H<20)return;
+        const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(c.width!==pw||c.height!==ph){c.width=pw;c.height=ph;}
+        const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#080d15';g.fillRect(0,0,W,H);
+        galleryMapHits=[];
+        const step=Math.max(1,Math.floor(tourTrajectoryRows.length/2500)),rows=tourTrajectoryRows.filter((q,i)=>i%step===0);
+        const stations=galleryStations();
+        if(!rows.length||!active)return;
+        let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+        const grow=(x,y)=>{if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;};
+        rows.forEach(q=>grow(q.tx,q.ty));stations.forEach(t=>grow(t.x,t.y));
+        const pad=28,sc=Math.min((W-2*pad)/(maxX-minX||1),(H-2*pad)/(maxY-minY||1));
+        const base=(x,y)=>[pad+(x-minX)*sc+(W-2*pad-(maxX-minX)*sc)/2,H-pad-(y-minY)*sc-(H-2*pad-(maxY-minY)*sc)/2];
+        const v=galleryMapView;
+        if(v.k<=1.001){v.k=1;v.tx=0;v.ty=0;}
+        if(v.sid!==active.id){v.sid=active.id;if(v.k>1){const b=base(active.x,active.y);v.tx=-(b[0]-W/2)*v.k;v.ty=-(b[1]-H/2)*v.k;}}  // stazione attiva al centro se zoomato
+        v.tx=Math.max(-W*v.k/2,Math.min(W*v.k/2,v.tx));v.ty=Math.max(-H*v.k/2,Math.min(H*v.k/2,v.ty));
+        const pt=(x,y)=>{const b=base(x,y);return [W/2+(b[0]-W/2)*v.k+v.tx,H/2+(b[1]-H/2)*v.k+v.ty];};
+        g.save();g.beginPath();g.rect(0,0,W,H);g.clip();
+        if(pcdRaster&&document.getElementById('tourUsePcd')?.checked)drawPcdRaster(g,pcdRaster,(x,y)=>{const p=pt(x,y);return {x:p[0],y:p[1]};},W,H,0.85);
+        g.strokeStyle='#94a3b8';g.lineWidth=2;g.beginPath();rows.forEach((q,i)=>{const [x,y]=pt(q.tx,q.ty);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+        const dot=(s,on)=>{const [x,y]=pt(s.x,s.y),rad=on?9:6;galleryMapHits.push({id:s.id,x,y});
+            if(galleryMapHover===s.id&&!on){g.lineWidth=2;g.strokeStyle='#fff';g.beginPath();g.arc(x,y,rad+4,0,Math.PI*2);g.stroke();}
+            g.fillStyle=on?'#ef4444':'#facc15';g.beginPath();g.arc(x,y,rad,0,Math.PI*2);g.fill();g.lineWidth=1.5;g.strokeStyle='#0b1220';g.stroke();
+            g.font='bold 13px sans-serif';g.lineWidth=3;g.strokeStyle='#080d15';g.strokeText('GCP_'+s.id,x+9,y-8);g.fillStyle='#fff';g.fillText('GCP_'+s.id,x+9,y-8);};
+        stations.forEach(s=>{if(s.id!==active.id)dot(s,false);});
+        stations.forEach(s=>{if(s.id===active.id)dot(s,true);});
+        g.restore();
+    }
+    (function initGalleryZoom(){
+        const stage=document.getElementById('galleryStage'),map=document.getElementById('galleryTrackMap');
+        const wf=e=>Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0015));
+        const redrawMap=()=>drawGalleryTrack(galleryCurrentStation());
+        const activeSlide=()=>document.getElementById('galleryTrack').children[galleryPhotoIndex]||stage;
+        stage.addEventListener('wheel',e=>{e.preventDefault();galleryZoomView(galleryPhotoView,activeSlide(),e.clientX,e.clientY,wf(e),16);galleryApplyPhoto();},{passive:false});
+        stage.addEventListener('dblclick',e=>{if(e.target.closest('button'))return;if(galleryPhotoView.k>1)galleryResetPhotoZoom();else{galleryZoomView(galleryPhotoView,activeSlide(),e.clientX,e.clientY,2.5,16);galleryApplyPhoto();}});
+        galleryDrag(stage,'panning',
+            (dx,dy)=>{if(galleryPhotoView.k>1){galleryPhotoView.tx+=dx;galleryPhotoView.ty+=dy;galleryApplyPhoto();}else{galleryDragOffset+=dx;galleryLayout(true);}},
+            ()=>{if(galleryPhotoView.k>1)return;const off=galleryDragOffset;galleryDragOffset=0;const th=stage.clientWidth*0.08;if(off>th)galleryStep(-1);else if(off<-th)galleryStep(1);else galleryLayout(false);},
+            e=>{if(galleryPhotoView.k>1)return;const el=document.elementFromPoint(e.clientX,e.clientY),s=el&&el.closest?el.closest('.gallery-slide'):null;if(s){const i=Array.prototype.indexOf.call(document.getElementById('galleryTrack').children,s);if(i>=0&&i!==galleryPhotoIndex)galleryGoPhoto(i);}});
+        map.addEventListener('wheel',e=>{e.preventDefault();galleryZoomView(galleryMapView,map,e.clientX,e.clientY,wf(e),60);redrawMap();},{passive:false});
+        map.addEventListener('dblclick',()=>{Object.assign(galleryMapView,{k:1,tx:0,ty:0});redrawMap();});
+        galleryDrag(map,'panning',
+            (dx,dy)=>{if(galleryMapView.k>1){galleryMapView.tx+=dx;galleryMapView.ty+=dy;redrawMap();}},
+            null,
+            e=>{const r=map.getBoundingClientRect(),id=galleryHit(e.clientX-r.left,e.clientY-r.top,14);if(id!==null)galleryGoStation(id);});
+        map.addEventListener('pointermove',e=>{if(e.buttons)return;const r=map.getBoundingClientRect(),h=galleryHit(e.clientX-r.left,e.clientY-r.top,12);if(h!==galleryMapHover){galleryMapHover=h;map.style.cursor=h===null?'':'pointer';redrawMap();}});
+        map.addEventListener('pointerleave',()=>{if(galleryMapHover!==null){galleryMapHover=null;map.style.cursor='';redrawMap();}});
+        window.addEventListener('resize',()=>{if(document.getElementById('stationGalleryOverlay').classList.contains('active')){galleryLayout(true);redrawMap();}});
+    })();
+    document.addEventListener('keydown',e=>{if(!document.getElementById('stationGalleryOverlay')?.classList.contains('active'))return;if(e.key==='Escape')closeStationGallery();else if(e.key==='ArrowLeft')galleryPrevPhoto();else if(e.key==='ArrowRight')galleryNextPhoto();else if(e.key==='ArrowUp')galleryPrevStation();else if(e.key==='ArrowDown')galleryNextStation();});
+    async function exportStationGallery(){
+        const valid=galleryStations();if(!valid.length){alert('Non ci sono stazioni con fotografie selezionate.');return;}
+        const status=document.getElementById('tourStatus');status.textContent='Preparazione webgallery autonoma…';
+        try{
+            const stations=[];for(const st of valid){const photos=[];for(const p of gallerySelectedPhotos(st)){const data=await p.file.arrayBuffer();let binary='';const bytes=new Uint8Array(data);for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));photos.push({name:p.name,heading:p.heading||0,data:'data:'+(p.file.type||'image/png')+';base64,'+btoa(binary)});}stations.push({id:st.id,x:st.x,y:st.y,photos});}
+            const track=tourTrajectoryRows.filter((r,i)=>i%Math.max(1,Math.floor(tourTrajectoryRows.length/3000))===0).map(r=>[r.tx,r.ty]);
+            let bg=null;
+            if(document.getElementById('tourUsePcd')?.checked){status.textContent='Preparazione sfondo nuvola PCD…';const R=await ensurePcdRaster();if(R)bg=pcdRasterForExport(R,1024);}
+            const html=buildStandaloneGalleryHtml(stations,track,bg);const blob=new Blob([html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Eagle_WebGallery_Stazioni.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+            status.textContent=`Webgallery esportata · ${stations.length} stazioni · ${stations.reduce((n,s)=>n+s.photos.length,0)} fotografie incorporate nel file HTML${bg?' · sfondo nuvola PCD incluso':''}.`;
+        }catch(e){console.error(e);status.textContent='Errore esportazione gallery: '+e.message;alert('Errore durante l’esportazione: '+e.message);}
+    }
+    function buildStandaloneGalleryHtml(stations,track,bg){
+        const data=JSON.stringify({stations,track,bg:bg||null}).replace(/</g,'\u003c');
+        return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eagle – Webgallery stazioni</title><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#05070c;color:#fff;font:14px Arial,sans-serif}
+#app{height:100%;display:flex;flex-direction:column}
+.top,.bottom{padding:12px 18px;background:#0b1220;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 330px}
+.stage{position:relative;min-width:0;overflow:hidden;background:#020408;touch-action:none}
+.stage.zoomed{cursor:grab}.stage.panning{cursor:grabbing}
+.track{position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;will-change:transform;transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+.slide{flex:0 0 auto;position:relative;opacity:.42;filter:brightness(.7);transition:opacity .55s ease,filter .55s ease;cursor:pointer}
+.slide.active{opacity:1;filter:none;cursor:default;z-index:3}
+.slide img{width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;will-change:transform}
+.badge{position:absolute;left:14px;bottom:12px;z-index:5;pointer-events:none;background:rgba(10,15,25,.82);border:1px solid #334155;border-radius:6px;padding:4px 9px;font-size:12px;color:#cbd5e1}
+.side{padding:12px;background:#0d1420;border-left:1px solid #263244;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+.mapbox{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}
+.thumbbox{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1}
+#map{width:100%;height:230px;display:block;background:#080d15;border:1px solid #334155;border-radius:8px;cursor:grab;touch-action:none}
+#map.panning{cursor:grabbing}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#cbd5e1}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.dot.y{background:#facc15}.dot.r{background:#ef4444}
+.stnav{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stnav button{padding:9px 6px;font-size:12px}
+.hint{font-size:11px;color:#94a3b8}
+.thumbs{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;overflow:auto}
+.thumb{padding:0;border:2px solid transparent;background:#111827;cursor:pointer;overflow:hidden}.thumb.active{border-color:#38bdf8}.thumb img{width:100%;height:75px;object-fit:cover;display:block}
+.arrow,button{cursor:pointer;color:#fff;background:#1e293b;border:1px solid #475569;border-radius:7px;padding:10px 14px;font:inherit}
+button:disabled{opacity:.35;cursor:not-allowed}
+.arrow{position:absolute;top:48%;font-size:32px;z-index:5;padding:8px 14px}.left{left:15px}.right{right:15px}
+@media(max-width:700px){.main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 270px}.side{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-left:0;border-top:1px solid #263244}.thumbbox{overflow:hidden}#map{height:120px}.stnav{grid-template-columns:1fr}.thumb img{height:60px}}
+</style></head><body><div id="app">
+<div class="top"><b id="title"></b><span id="counter"></span><button onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()">Schermo intero</button></div>
+<div class="main">
+<div class="stage" id="stage"><div class="track" id="track"></div><button class="arrow left" onclick="photo(-1)">‹</button><button class="arrow right" onclick="photo(1)">›</button><div class="badge" id="zoomBadge">🔍 100%</div></div>
+<aside class="side">
+<div class="mapbox"><b>Tracciato e GCP</b><canvas id="map"></canvas>
+<div class="legend"><span><i class="dot y"></i>GCP / stazioni</span><span><i class="dot r"></i>Stazione attiva</span></div>
+<div class="stnav"><button id="prevSt" onclick="station(-1)">← Stazione precedente</button><button id="nextSt" onclick="station(1)">Stazione successiva →</button></div>
+<div class="hint">Mappa: rotella = zoom · trascina = sposta · doppio clic = reset · clic su un pallino = vai alla stazione</div></div>
+<div class="thumbbox"><b>Fotografie</b><div id="thumbs" class="thumbs"></div></div>
+</aside></div>
+<div class="bottom"><span id="filename"></span><span class="hint">Foto: rotella = zoom · trascina = sposta/scorri · doppio clic = zoom/reset · clic sulla foto accanto = vai · ← → foto · ↑ ↓ stazione</span></div>
+</div><script>
+var D=${data};var si=-1,pi=0,P={k:1,tx:0,ty:0},M={k:1,tx:0,ty:0,sid:null,hover:null,hits:[]},off=0,GAP=28,FILL=0.78,bgImg=null;
+function $(i){return document.getElementById(i)}
+function st(){return D.stations[si]}
+function slides(){return $('track').children}
+function buildTrack(){var t=$('track');t.innerHTML='';st().photos.forEach(function(p){var s=document.createElement('div');s.className='slide';var im=document.createElement('img');im.alt=p.name;im.draggable=false;im.addEventListener('load',function(){var ar=im.naturalWidth/im.naturalHeight;if(!p.ar||Math.abs(p.ar-ar)>0.01){p.ar=ar;layout(true)}});s.appendChild(im);t.appendChild(s)})}
+function ensureSrc(){var ps=st().photos,sl=slides();for(var i=Math.max(0,pi-2);i<=Math.min(ps.length-1,pi+2);i++){var im=sl[i].firstChild;if(!im.getAttribute('src'))im.src=ps[i].data}}
+function layout(instant){var s=$('stage'),W=s.clientWidth,H=s.clientHeight;if(!W||!H)return;var ps=st().photos,sl=slides(),tr=$('track');if(sl.length!==ps.length)return;
+var ref=4/3;for(var j=0;j<ps.length;j++){if(ps[j].ar){ref=ps[j].ar;break}}
+var x=0,cx=[];for(var i=0;i<ps.length;i++){var ar=ps[i].ar||ref,w=Math.min(W*FILL,H*0.94*ar),h=w/ar;sl[i].style.width=w+'px';sl[i].style.height=h+'px';sl[i].style.marginRight=GAP+'px';cx.push(x+w/2);x+=w+GAP}
+var tx=W/2-cx[pi]+off;if(instant)tr.style.transition='none';tr.style.transform='translateX('+tx+'px)';if(instant){void tr.offsetWidth;tr.style.transition=''}
+for(i=0;i<sl.length;i++)sl[i].className='slide'+(i===pi?' active':'');ensureSrc();applyPhoto()}
+function applyPhoto(){var s=$('stage'),sl=slides(),a=sl[pi];if(P.k<=1.001){P.k=1;P.tx=0;P.ty=0}
+if(a){var mx=Math.max(0,(a.offsetWidth*P.k-s.clientWidth)/2),my=Math.max(0,(a.offsetHeight*P.k-s.clientHeight)/2);P.tx=Math.max(-mx,Math.min(mx,P.tx));P.ty=Math.max(-my,Math.min(my,P.ty))}
+for(var i=0;i<sl.length;i++)sl[i].firstChild.style.transform=i===pi?'translate('+P.tx+'px,'+P.ty+'px) scale('+P.k+')':'';
+s.classList.toggle('zoomed',P.k>1);$('zoomBadge').textContent='🔍 '+Math.round(P.k*100)+'%'}
+function zoomView(v,el,cx,cy,f,maxK){var r=el.getBoundingClientRect(),px=cx-r.left-r.width/2,py=cy-r.top-r.height/2,nk=Math.max(1,Math.min(maxK,v.k*f)),g=nk/v.k;v.tx=px-g*(px-v.tx);v.ty=py-g*(py-v.ty);v.k=nk}
+function drag(el,cls,fn,endFn,clickFn){var d=null,moved=0;
+el.addEventListener('pointerdown',function(e){if(e.button!==0||e.target.closest('button'))return;d={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY};moved=0;el.setPointerCapture(e.pointerId)});
+el.addEventListener('pointermove',function(e){if(!d)return;moved=Math.max(moved,Math.hypot(e.clientX-d.sx,e.clientY-d.sy));if(moved>3){el.classList.add(cls);fn(e.clientX-d.x,e.clientY-d.y)}d.x=e.clientX;d.y=e.clientY});
+function end(e){if(!d)return;var was=moved;d=null;el.classList.remove(cls);if(endFn)endFn(was>3);if(was<=3&&clickFn&&e.type==='pointerup')clickFn(e)}
+el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end)}
+function hit(px,py,rad){var best=null,bd=rad;M.hits.forEach(function(h){var d=Math.hypot(h.x-px,h.y-py);if(d<=bd){bd=d;best=h.i}});return best}
+function map(){var c=$('map'),dpr=window.devicePixelRatio||1,r=c.getBoundingClientRect(),W=r.width,H=r.height;if(W<20||H<20)return;
+var pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(c.width!==pw||c.height!==ph){c.width=pw;c.height=ph}
+var g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#080d15';g.fillRect(0,0,W,H);M.hits=[];
+var a=D.track,s=st(),mnx=1e18,mxx=-1e18,mny=1e18,mxy=-1e18;
+function grow(x,y){if(x<mnx)mnx=x;if(x>mxx)mxx=x;if(y<mny)mny=y;if(y>mxy)mxy=y}
+a.forEach(function(p){grow(p[0],p[1])});D.stations.forEach(function(q){grow(q.x,q.y)});if(mnx>mxx)return;
+var pad=28,k0=Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1));
+function base(x,y){return [pad+(x-mnx)*k0+(W-2*pad-(mxx-mnx)*k0)/2,H-pad-(y-mny)*k0-(H-2*pad-(mxy-mny)*k0)/2]}
+if(M.k<=1.001){M.k=1;M.tx=0;M.ty=0}
+if(M.sid!==s.id){M.sid=s.id;if(M.k>1){var b=base(s.x,s.y);M.tx=-(b[0]-W/2)*M.k;M.ty=-(b[1]-H/2)*M.k}}
+M.tx=Math.max(-W*M.k/2,Math.min(W*M.k/2,M.tx));M.ty=Math.max(-H*M.k/2,Math.min(H*M.k/2,M.ty));
+function pt(x,y){var b=base(x,y);return [W/2+(b[0]-W/2)*M.k+M.tx,H/2+(b[1]-H/2)*M.k+M.ty]}
+g.save();g.beginPath();g.rect(0,0,W,H);g.clip();
+if(bgImg&&bgImg.complete&&bgImg.naturalWidth){var A=pt(D.bg.minX,D.bg.maxY),B=pt(D.bg.maxX,D.bg.minY),dw=B[0]-A[0],dh=B[1]-A[1];
+if(dw>0&&dh>0){var kx=bgImg.naturalWidth/dw,ky=bgImg.naturalHeight/dh,x0=Math.max(0,-A[0]),y0=Math.max(0,-A[1]),x1=Math.min(dw,W-A[0]),y1=Math.min(dh,H-A[1]);
+if(x1>x0&&y1>y0){g.save();g.globalAlpha=0.85;g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(bgImg,x0*kx,y0*ky,(x1-x0)*kx,(y1-y0)*ky,A[0]+x0,A[1]+y0,x1-x0,y1-y0);g.restore()}}}
+g.strokeStyle='#94a3b8';g.lineWidth=2;g.beginPath();a.forEach(function(p,i){var q=pt(p[0],p[1]);if(i)g.lineTo(q[0],q[1]);else g.moveTo(q[0],q[1])});g.stroke();
+function dot(q,idx,on){var z=pt(q.x,q.y),rad=on?9:6;M.hits.push({i:idx,x:z[0],y:z[1]});
+if(M.hover===idx&&!on){g.lineWidth=2;g.strokeStyle='#fff';g.beginPath();g.arc(z[0],z[1],rad+4,0,Math.PI*2);g.stroke()}
+g.fillStyle=on?'#ef4444':'#facc15';g.beginPath();g.arc(z[0],z[1],rad,0,Math.PI*2);g.fill();g.lineWidth=1.5;g.strokeStyle='#0b1220';g.stroke();
+g.font='bold 13px Arial';g.lineWidth=3;g.strokeStyle='#080d15';g.strokeText('GCP_'+q.id,z[0]+9,z[1]-8);g.fillStyle='#fff';g.fillText('GCP_'+q.id,z[0]+9,z[1]-8)}
+D.stations.forEach(function(q,i){if(i!==si)dot(q,i,false)});D.stations.forEach(function(q,i){if(i===si)dot(q,i,true)});
+g.restore()}
+function buildThumbs(){var t=$('thumbs');t.innerHTML='';st().photos.forEach(function(x,i){var b=document.createElement('button');b.className='thumb';var im=document.createElement('img');im.src=x.data;b.appendChild(im);b.onclick=function(){go(i)};t.appendChild(b)})}
+function meta(){var s=st(),p=s.photos[pi];$('title').textContent='STAZIONE GCP_'+s.id;$('counter').textContent='Foto '+(pi+1)+' / '+s.photos.length;$('filename').textContent=p.name;
+var k=$('thumbs').children;for(var i=0;i<k.length;i++)k[i].className='thumb'+(i===pi?' active':'');
+$('prevSt').disabled=si<=0;$('nextSt').disabled=si>=D.stations.length-1}
+function go(i){var n=st().photos.length;pi=((i%n)+n)%n;P.k=1;P.tx=0;P.ty=0;off=0;meta();layout(false)}
+function photo(d){go(pi+d)}
+function step(d){var n=st().photos.length,j=pi+d;if(j<0||j>=n){layout(false);return}go(j)}
+function gotoStation(n){n=Math.max(0,Math.min(D.stations.length-1,n));if(n===si)return;si=n;pi=0;P.k=1;P.tx=0;P.ty=0;off=0;buildTrack();buildThumbs();meta();layout(true);map()}
+function station(d){gotoStation(si+d)}
+function wf(e){return Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0015))}
+var stage=$('stage'),mp=$('map');
+function activeSlide(){return slides()[pi]||stage}
+stage.addEventListener('wheel',function(e){e.preventDefault();zoomView(P,activeSlide(),e.clientX,e.clientY,wf(e),16);applyPhoto()},{passive:false});
+stage.addEventListener('dblclick',function(e){if(e.target.closest('button'))return;if(P.k>1){P.k=1}else{zoomView(P,activeSlide(),e.clientX,e.clientY,2.5,16)}applyPhoto()});
+drag(stage,'panning',function(dx,dy){if(P.k>1){P.tx+=dx;P.ty+=dy;applyPhoto()}else{off+=dx;layout(true)}},
+function(){if(P.k>1)return;var o=off;off=0;var th=stage.clientWidth*0.08;if(o>th)step(-1);else if(o<-th)step(1);else layout(false)},
+function(e){if(P.k>1)return;var el=document.elementFromPoint(e.clientX,e.clientY),s=el&&el.closest?el.closest('.slide'):null;if(s){var i=Array.prototype.indexOf.call(slides(),s);if(i>=0&&i!==pi)go(i)}});
+mp.addEventListener('wheel',function(e){e.preventDefault();zoomView(M,mp,e.clientX,e.clientY,wf(e),60);map()},{passive:false});
+mp.addEventListener('dblclick',function(){M.k=1;M.tx=0;M.ty=0;map()});
+drag(mp,'panning',function(dx,dy){if(M.k>1){M.tx+=dx;M.ty+=dy;map()}},null,function(e){var r=mp.getBoundingClientRect(),h=hit(e.clientX-r.left,e.clientY-r.top,14);if(h!==null)gotoStation(h)});
+mp.addEventListener('pointermove',function(e){if(e.buttons)return;var r=mp.getBoundingClientRect(),h=hit(e.clientX-r.left,e.clientY-r.top,12);if(h!==M.hover){M.hover=h;mp.style.cursor=h===null?'':'pointer';map()}});
+mp.addEventListener('pointerleave',function(){if(M.hover!==null){M.hover=null;mp.style.cursor='';map()}});
+window.addEventListener('resize',function(){layout(true);map()});
+document.addEventListener('keydown',function(e){if(e.key==='ArrowLeft')photo(-1);if(e.key==='ArrowRight')photo(1);if(e.key==='ArrowUp')station(-1);if(e.key==='ArrowDown')station(1)});
+if(D.bg){bgImg=new Image();bgImg.onload=function(){map()};bgImg.src=D.bg.u}
+gotoStation(0);<\/script></body></html>`;
+    }
+    function rotateVectorByQuaternion(v,q){const n=qNormalize(q),u={x:n.x,y:n.y,z:n.z},w=n.w;const dot=u.x*v[0]+u.y*v[1]+u.z*v[2],uu=u.x*u.x+u.y*u.y+u.z*u.z;const cross=[u.y*v[2]-u.z*v[1],u.z*v[0]-u.x*v[2],u.x*v[1]-u.y*v[0]];return [2*dot*u.x+(w*w-uu)*v[0]+2*w*cross[0],2*dot*u.y+(w*w-uu)*v[1]+2*w*cross[1],2*dot*u.z+(w*w-uu)*v[2]+2*w*cross[2]];}
+    function cameraHeadingDeg(q){
+        let forward=[0,0,1];const m=tourCalibration?.out_put?.front?.transform_matrix;
+        if(m&&m.length>=3)forward=[m[0][2],m[1][2],m[2][2]];
+        const world=rotateVectorByQuaternion(forward,q);return (Math.atan2(world[1],world[0])*180/Math.PI+360)%360;
+    }
+    // ================= NUVOLA PCD -> SFONDO RASTER =================
+    // Supporta DATA ascii / binary / binary_compressed (LZF). La nuvola viene campionata (max ~2,5 M punti),
+    // proiettata in pianta e convertita in un raster densità/quota usato come sfondo del viewer e del navigatore.
+    const PCD_SAMPLE_TARGET = 2500000, PCD_RASTER_RES = 1400;
+    function setPcdStatus(msg, kind) {
+        ['pcdStatus', 'tourPcdStatus'].forEach(id => {
+            const el = document.getElementById(id); if (!el) return;
+            el.textContent = msg || ''; el.className = 'pcd-status' + (kind ? ' ' + kind : ''); el.style.display = msg ? '' : 'none';
+        });
+    }
+    const pcdYield = () => new Promise(r => setTimeout(r, 0));
+    const fmtN = n => Number(n).toLocaleString('it-IT');
+
+    async function ensurePcdRaster() {
+        if (pcdRaster) return pcdRaster;
+        if (!pcdFileRef) { setPcdStatus('☁️ Nessun file .pcd nella cartella progetto (cercato recalculate_result.pcd o qualsiasi *.pcd).', 'warn'); return null; }
+        if (!pcdLoadPromise) {
+            const token = pcdLoadToken, file = pcdFileRef;
+            pcdLoadPromise = loadPcdRaster(file, token)
+                .catch(e => { console.error(e); setPcdStatus('☁️ PCD non importato: ' + ((e && e.message) || e), 'err'); return null; })
+                .finally(() => { pcdLoadPromise = null; });
+        }
+        return pcdLoadPromise;
+    }
+    async function onPcdToggle() {
+        const cb = document.getElementById('layerPcd');
+        if (cb.checked) { const r = await ensurePcdRaster(); if (!r) cb.checked = false; }
+        drawPreviewCanvas();
+    }
+    async function onTourPcdToggle() {
+        const cb = document.getElementById('tourUsePcd');
+        if (cb.checked) { const r = await ensurePcdRaster(); if (!r) cb.checked = false; }
+        if (document.getElementById('stationGalleryOverlay').classList.contains('active')) drawGalleryTrack(galleryCurrentStation());
+    }
+
+    async function readPcdHeader(file) {
+        const bytes = new Uint8Array(await file.slice(0, Math.min(file.size, 262144)).arrayBuffer());
+        let txt = ''; for (let i = 0; i < bytes.length; i += 8192) txt += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        const m = /^DATA[ \t]+(ascii|binary_compressed|binary)[ \t]*\r?\n/im.exec(txt);
+        if (!m) throw new Error('header non riconosciuto (riga DATA assente nei primi 256 KB): il file non sembra un PCD valido');
+        const h = {};
+        txt.slice(0, m.index).split(/\r?\n/).forEach(l => { l = l.trim(); if (!l || l[0] === '#') return; const p = l.split(/\s+/); h[p[0].toUpperCase()] = p.slice(1); });
+        const fields = (h.FIELDS || []).map(f => f.toLowerCase());
+        const sizes = (h.SIZE || []).map(Number), types = (h.TYPE || []).map(t => t.toUpperCase());
+        const counts = (h.COUNT || fields.map(() => '1')).map(Number);
+        const ix = fields.indexOf('x'), iy = fields.indexOf('y'), iz = fields.indexOf('z');
+        if (ix < 0 || iy < 0 || iz < 0) throw new Error('campi x/y/z assenti (FIELDS: ' + (fields.join(', ') || 'nessuno') + ')');
+        if (sizes.length !== fields.length || types.length !== fields.length) throw new Error('header incoerente (FIELDS/SIZE/TYPE di lunghezza diversa)');
+        const points = Number((h.POINTS || [])[0]) || ((Number((h.WIDTH || [])[0]) || 0) * (Number((h.HEIGHT || [])[0]) || 1));
+        return { mode: m[1].toLowerCase(), dataOffset: m.index + m[0].length, fields, sizes, types, counts, ix, iy, iz, points };
+    }
+    function pcdReader(type, size) {
+        if (type === 'F') return size === 8 ? (d, o) => d.getFloat64(o, true) : (d, o) => d.getFloat32(o, true);
+        if (type === 'I') return size === 1 ? (d, o) => d.getInt8(o) : size === 2 ? (d, o) => d.getInt16(o, true) : (d, o) => d.getInt32(o, true);
+        return size === 1 ? (d, o) => d.getUint8(o) : size === 2 ? (d, o) => d.getUint16(o, true) : (d, o) => d.getUint32(o, true);
+    }
+    // Decompressione LZF (formato liblzf usato da PCL per "binary_compressed")
+    function lzfDecompress(src, usize) {
+        const out = new Uint8Array(usize), n = src.length; let ip = 0, op = 0;
+        while (ip < n) {
+            let ctrl = src[ip++];
+            if (ctrl < 32) {
+                ctrl++;
+                if (op + ctrl > usize || ip + ctrl > n) throw new Error('LZF corrotto (run letterale fuori limite)');
+                out.set(src.subarray(ip, ip + ctrl), op); ip += ctrl; op += ctrl;
+            } else {
+                let len = ctrl >> 5;
+                if (len === 7) len += src[ip++];
+                let ref = op - ((ctrl & 0x1f) << 8) - 1 - src[ip++];
+                len += 2;
+                if (ref < 0 || op + len > usize) throw new Error('LZF corrotto (riferimento fuori limite)');
+                for (let k = 0; k < len; k++) out[op++] = out[ref++];
+            }
+        }
+        if (op !== usize) throw new Error('LZF: dimensione decompressa inattesa (' + op + ' invece di ' + usize + ')');
+        return out;
+    }
+
+    async function samplePcd(file, hdr, progress) {
+        const { sizes, counts, types, ix, iy, iz } = hdr;
+        const cnt = counts.map(c => c || 1);
+        const pointStep = sizes.reduce((a, z, i) => a + z * cnt[i], 0);
+        const byteOff = []; let acc = 0; sizes.forEach((z, i) => { byteOff.push(acc); acc += z * cnt[i]; });
+        const colOff = []; let c0 = 0; cnt.forEach(k => { colOff.push(c0); c0 += k; });
+        const mk = cap => ({ xs: new Float64Array(cap), ys: new Float64Array(cap), zs: new Float32Array(cap), n: 0, total: 0 });
+        const push = (S, x, y, z) => { if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) && S.n < S.xs.length) { S.xs[S.n] = x; S.ys[S.n] = y; S.zs[S.n] = z; S.n++; } };
+        let S;
+
+        if (hdr.mode === 'binary') {
+            const avail = Math.floor((file.size - hdr.dataOffset) / pointStep);
+            const total = hdr.points ? Math.min(hdr.points, avail) : avail;
+            if (total < 1) throw new Error('nessun punto nel file (dimensione dati inferiore a un punto)');
+            const stride = Math.max(1, Math.ceil(total / PCD_SAMPLE_TARGET));
+            S = mk(Math.ceil(total / stride) + 8); S.total = total;
+            const rx = pcdReader(types[ix], sizes[ix]), ry = pcdReader(types[iy], sizes[iy]), rz = pcdReader(types[iz], sizes[iz]);
+            const chunkPts = Math.max(1, Math.floor(8 * 1048576 / pointStep));
+            for (let start = 0; start < total; start += chunkPts) {
+                const n = Math.min(chunkPts, total - start);
+                const buf = await file.slice(hdr.dataOffset + start * pointStep, hdr.dataOffset + (start + n) * pointStep).arrayBuffer();
+                const dv = new DataView(buf);
+                for (let i = (stride - (start % stride)) % stride; i < n; i += stride) {
+                    const o = i * pointStep;
+                    push(S, rx(dv, o + byteOff[ix]), ry(dv, o + byteOff[iy]), rz(dv, o + byteOff[iz]));
+                }
+                progress(Math.round(100 * (start + n) / total)); await pcdYield();
+            }
+        } else if (hdr.mode === 'binary_compressed') {
+            const h8 = new DataView(await file.slice(hdr.dataOffset, hdr.dataOffset + 8).arrayBuffer());
+            const csize = h8.getUint32(0, true), usize = h8.getUint32(4, true);
+            if (usize > 1.9e9) throw new Error('PCD compresso troppo grande (' + (usize / 1e9).toFixed(1) + ' GB decompresso): riesportalo come "binary" oppure ridotto');
+            progress('decompressione'); await pcdYield();
+            const src = new Uint8Array(await file.slice(hdr.dataOffset + 8, hdr.dataOffset + 8 + csize).arrayBuffer());
+            const raw = lzfDecompress(src, usize);
+            const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+            const N = Math.floor(usize / pointStep);
+            const total = hdr.points ? Math.min(hdr.points, N) : N;
+            if (total < 1) throw new Error('nessun punto nel blocco compresso');
+            const base = []; let a = 0; sizes.forEach((z, i) => { base.push(a); a += z * cnt[i] * N; });   // layout per campo: tutti gli x, poi tutti gli y, ...
+            const stride = Math.max(1, Math.ceil(total / PCD_SAMPLE_TARGET));
+            S = mk(Math.ceil(total / stride) + 8); S.total = total;
+            const rx = pcdReader(types[ix], sizes[ix]), ry = pcdReader(types[iy], sizes[iy]), rz = pcdReader(types[iz], sizes[iz]);
+            for (let i = 0; i < total; i += stride) push(S, rx(dv, base[ix] + i * sizes[ix]), ry(dv, base[iy] + i * sizes[iy]), rz(dv, base[iz] + i * sizes[iz]));
+        } else {   // ascii, a blocchi (non carica mai il file intero in memoria)
+            let total = hdr.points;
+            if (!total) {
+                const probe = new TextDecoder().decode(await file.slice(hdr.dataOffset, hdr.dataOffset + 65536).arrayBuffer());
+                const lines = probe.split('\n').slice(0, -1).filter(l => l.trim());
+                const avg = lines.length ? probe.length / (lines.length + 1) : 40;
+                total = Math.max(1, Math.round((file.size - hdr.dataOffset) / Math.max(10, avg)));
+            }
+            const stride = Math.max(1, Math.ceil(total / PCD_SAMPLE_TARGET));
+            S = mk(Math.ceil(total / stride) + 64); S.total = total;
+            const dec = new TextDecoder(), CH = 8 * 1048576; let carry = '', idx = 0;
+            const take = line => {
+                if (!line.trim()) return;
+                if (idx++ % stride) return;
+                const p = line.trim().split(/\s+/);
+                push(S, parseFloat(p[colOff[ix]]), parseFloat(p[colOff[iy]]), parseFloat(p[colOff[iz]]));
+            };
+            for (let pos = hdr.dataOffset; pos < file.size; pos += CH) {
+                const buf = await file.slice(pos, Math.min(file.size, pos + CH)).arrayBuffer();
+                const parts = (carry + dec.decode(buf, { stream: true })).split('\n'); carry = parts.pop();
+                for (const l of parts) take(l);
+                progress(Math.min(100, Math.round(100 * (pos + CH - hdr.dataOffset) / Math.max(1, file.size - hdr.dataOffset)))); await pcdYield();
+            }
+            take(carry + dec.decode());
+            S.total = Math.max(S.total, idx);
+        }
+        return S;
+    }
+
+    // Campioni -> raster planimetrico (densità = trasparenza, quota media = colore), con riempimento dei buchi.
+    function buildPcdRaster(S, res) {
+        const n = S.n, take = Math.min(n, 200000), step = Math.max(1, Math.floor(n / take));
+        const sx = new Float64Array(take), sy = new Float64Array(take), sz = new Float64Array(take); let m = 0;
+        for (let i = 0; i < n && m < take; i += step) { sx[m] = S.xs[i]; sy[m] = S.ys[i]; sz[m] = S.zs[i]; m++; }
+        const A = sx.subarray(0, m).sort(), B = sy.subarray(0, m).sort(), Z = sz.subarray(0, m).sort();
+        const q = (a, p) => a[Math.min(a.length - 1, Math.max(0, Math.floor(p * (a.length - 1))))];
+        let x0 = q(A, 0.002), x1 = q(A, 0.998), y0 = q(B, 0.002), y1 = q(B, 0.998);   // percentili: ignora i punti anomali lontani
+        const mx = ((x1 - x0) || 1) * 0.02, my = ((y1 - y0) || 1) * 0.02; x0 -= mx; x1 += mx; y0 -= my; y1 += my;
+        const zlo = q(Z, 0.02); let zhi = q(Z, 0.98); if (!(zhi > zlo)) zhi = zlo + 1;
+        const cell = (Math.max(x1 - x0, y1 - y0) / res) || 0.01;
+        const w = Math.max(2, Math.ceil((x1 - x0) / cell)), h = Math.max(2, Math.ceil((y1 - y0) / cell));
+        const cnt = new Uint32Array(w * h), zsum = new Float32Array(w * h);
+        for (let i = 0; i < n; i++) {
+            const cx = Math.floor((S.xs[i] - x0) / cell), cy = Math.floor((y1 - S.ys[i]) / cell);
+            if (cx >= 0 && cx < w && cy >= 0 && cy < h) { const k = cy * w + cx; cnt[k]++; zsum[k] += S.zs[i]; }
+        }
+        const nz = []; for (let k = 0; k < cnt.length && nz.length < 150000; k += 1 + (cnt.length > 600000 ? 3 : 0)) if (cnt[k]) nz.push(cnt[k]);
+        nz.sort((a, b) => a - b); const cref = Math.max(2, nz.length ? nz[Math.floor(nz.length * 0.95)] : 2);
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const c2 = cv.getContext('2d'), img = c2.createImageData(w, h), d = img.data;
+        const ramp = t => t < 0.5 ? [30 + (56 - 30) * t * 2, 58 + (189 - 58) * t * 2, 138 + (248 - 138) * t * 2] : [56 + (241 - 56) * (t - 0.5) * 2, 189 + (245 - 189) * (t - 0.5) * 2, 248 + (249 - 248) * (t - 0.5) * 2];
+        let filled = 0;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            const k = y * w + x; let zm, al;
+            if (cnt[k] > 0) { zm = zsum[k] / cnt[k]; al = 0.30 + 0.70 * Math.min(1, Math.log(1 + cnt[k]) / Math.log(1 + cref)); }
+            else {
+                let nn = 0, zs = 0;
+                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                    if (!dx && !dy) continue; const xx = x + dx, yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                    const kk = yy * w + xx; if (cnt[kk] > 0) { nn++; zs += zsum[kk] / cnt[kk]; }
+                }
+                if (nn < 3) continue; zm = zs / nn; al = 0.22;
+            }
+            const col = ramp(Math.max(0, Math.min(1, (zm - zlo) / (zhi - zlo)))), o = k * 4;
+            d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = Math.round(al * 255); filled++;
+        }
+        c2.putImageData(img, 0, 0);
+        return { canvas: cv, minX: x0, maxX: x0 + w * cell, maxY: y1, minY: y1 - h * cell, w, h, cell, filled };
+    }
+
+    async function loadPcdRaster(file, token) {
+        const t0 = performance.now();
+        setPcdStatus('☁️ Lettura header PCD…', 'busy');
+        const hdr = await readPcdHeader(file);
+        const S = await samplePcd(file, hdr, p => setPcdStatus(typeof p === 'number' ? `☁️ Lettura PCD (${hdr.mode}) ${p}%…` : `☁️ PCD ${hdr.mode}: ${p}…`, 'busy'));
+        if (S.n < 10) throw new Error('nessun punto valido letto (campionati ' + S.n + ')');
+        setPcdStatus('☁️ Costruzione sfondo raster…', 'busy'); await pcdYield();
+        const R = buildPcdRaster(S, PCD_RASTER_RES);
+        R.total = S.total; R.sampled = S.n; R.mode = hdr.mode;
+        if (token !== pcdLoadToken) return null;   // nel frattempo è stata caricata un'altra cartella
+        pcdRaster = R;
+
+        // Controllo di coerenza con la traiettoria (stesso sistema di riferimento?)
+        let bb = null; const rows = trjDataList.length ? trjDataList : tourTrajectoryRows;
+        if (rows.length) { bb = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }; rows.forEach(p => { if (p.tx < bb.x0) bb.x0 = p.tx; if (p.tx > bb.x1) bb.x1 = p.tx; if (p.ty < bb.y0) bb.y0 = p.ty; if (p.ty > bb.y1) bb.y1 = p.ty; }); }
+        const secs = ((performance.now() - t0) / 1000).toFixed(1);
+        let msg = `☁️ PCD importato (${hdr.mode}): ${fmtN(S.n)} punti campionati su ${fmtN(S.total)} · raster ${R.w}×${R.h} celle da ${(R.cell * 100).toFixed(1)} cm · ${secs} s`, kind = 'ok';
+        if (bb && (bb.x1 < R.minX || bb.x0 > R.maxX || bb.y1 < R.minY || bb.y0 > R.maxY)) { msg += ' ⚠ La nuvola NON si sovrappone alla traiettoria: probabile sistema di riferimento diverso.'; kind = 'warn'; }
+        setPcdStatus(msg, kind);
+        drawPreviewCanvas();
+        return R;
+    }
+
+    // Disegno del raster in un contesto 2D con trasformazione mondo -> schermo (taglia alla parte visibile)
+    function drawPcdRaster(c2d, R, toScreen, W, H, alpha) {
+        const a = toScreen(R.minX, R.maxY), b = toScreen(R.maxX, R.minY), dw = b.x - a.x, dh = b.y - a.y;
+        if (!(dw > 0 && dh > 0)) return;
+        const kx = R.w / dw, ky = R.h / dh;
+        const x0 = Math.max(0, -a.x), y0 = Math.max(0, -a.y), x1 = Math.min(dw, W - a.x), y1 = Math.min(dh, H - a.y);
+        if (x1 <= x0 || y1 <= y0) return;
+        c2d.save(); c2d.globalAlpha = alpha; c2d.imageSmoothingEnabled = true; c2d.imageSmoothingQuality = 'high';
+        c2d.drawImage(R.canvas, x0 * kx, y0 * ky, (x1 - x0) * kx, (y1 - y0) * ky, a.x + x0, a.y + y0, x1 - x0, y1 - y0);
+        c2d.restore();
+    }
+    // Versione ridotta incorporabile nella webgallery esportata
+    function pcdRasterForExport(R, maxSide) {
+        const k = Math.min(1, maxSide / Math.max(R.w, R.h)), w = Math.max(1, Math.round(R.w * k)), h = Math.max(1, Math.round(R.h * k));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const c = cv.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(R.canvas, 0, 0, w, h);
+        let u = cv.toDataURL('image/webp', 0.85); if (!u.startsWith('data:image/webp')) u = cv.toDataURL('image/png');
+        return { u, minX: R.minX, maxX: R.maxX, minY: R.minY, maxY: R.maxY, w, h };
+    }
+
+</script>
+
+</body>
+</html>
